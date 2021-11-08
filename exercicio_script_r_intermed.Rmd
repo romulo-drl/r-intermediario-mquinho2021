@@ -1,0 +1,264 @@
+---
+title: "R Intermediário - Exercícios MQuinho 2021"
+author: "Rômulo Damasceno"
+date: "07/11/2021"
+output: 
+  html_document:
+    code_folding: hide
+    toc: true
+    toc_depth: 3
+editor_options: 
+  chunk_output_type: inline
+---
+
+## Proposta
+
+Nesta lista de exercícios utilizaremos os bancos de dados "messy_data_alocacao" e "messy_data_colab" , presentes na pasta de exercícios deste script. Os dados dizem respeito à informações sobre os colaboradores de uma empresa de inteligência de dados, e possuem diversos erros de preenchimento, além de estarem em tabelas separadas.
+
+O desafio desta lista consiste em colocar o dado num formato "tidy", e, em seguida, produzir um relatório completo destes dados, buscando os insights sobre os colaboradores, considerando que ele deve ser entregues ao chefe de RH da empresa fictícia.
+
+## Passo 1 - Carregar os pacotes e importar os dados
+
+1.  Carregue os seguintes pacotes para uso:
+
+    -   tidyverse, scales, DataExplorer, readxl, skimr, stringi
+
+2.  Importe os dois bancos de dados: "messy_data_alocacao" e "messy_data_colab" e atribua-os a objetos separados com nomes de sua escolha.
+
+```{r}
+# Resposta aqui
+
+# 1:
+
+library(tidyverse)
+library(DataExplorer)
+library(scales)
+library(readxl)
+library(kableExtra)
+library(skimr)
+library(stringi)
+
+# Ou
+pacotes <- c('tidyverse', 'DataExplorer', 'scales',
+             'readxl', 'kableExtra', 'skimr')
+
+map(pacotes, library, character.only = TRUE)
+
+# 2:
+
+alocacao <- read_xlsx('messy_data_alocacao.xlsx')
+colaboradores <- read_xlsx('messy_data_colab.xlsx')
+
+View(alocacao)
+View(colaboradores)
+
+```
+
+## Passo 2 - Join dos bancos de dados
+
+1.  Identifique a "chave", isto é, a variável que os bancos de dados tem em comum.
+2.  Qual tipo de join devemos utilizar? Faça o Join dos dois bancos de dados pela chave salvando-o num banco de dados chamado: "alocacao_colaboradores".
+
+```{r}
+# Str e glimpse - A Chave: ID
+str(alocacao)
+glimpse(alocacao)
+
+# View - A Chave: ID
+View(alocacao)
+View(colaboradores)
+
+# LEFT JOIN
+
+alocacao_colaboradores <- alocacao %>% 
+  left_join(colaboradores, by = 'ID')
+
+
+
+```
+
+## Passo 3 - Estrutura e diagnóstico do banco de dados
+
+1.  Utilizando as funções str(), ou glimpse(), analise a estrutura dos bancos de dados. As variáveis estão no formato esperado?
+2.  A função summary() é útil nesses dois dataframes?
+3.  Rode a função skim() no banco de dados para ter informações mais detalhadas sobre sua estrutura.
+4.  Liste as alterações que você precisa fazer neste banco de dados.
+
+```{r, include = F, echo = F}
+
+glimpse(alocacao_colaboradores) # A princípio sim, os dados estão no formato certo.
+skim(alocacao_colaboradores)
+
+
+# ----------- Alterações esperadas no BD ----------
+
+# Coluna "Cliente" tem múltiplos valores numa mesma célula, espaços incorretos, acentuação incorreta, letras maiúsculas e minúsculas.
+
+# CARGO ATUAL separa as mesmas funções para I, II e III, e tem os mesmos problemas anteriores.
+
+# CARGO ATUAL COMPLEMENTO deve ser anexado a cargo atual
+
+# UF precisa de padronização
+
+```
+
+## Passo 4 - Limpeza do banco de dados
+
+1.  Mobilize as funções necessárias para solucionar os problemas encontrados, salvando-as num banco de dados chamado "alocacao_colaboradores_tidy"
+
+**Subpassos:**
+
+1.  Utilize a função mutate_all() quando as alterações forem feitas em todas as colunas, e mutate() quando for para apenas uma.
+2.  Comece pelas padronizações mais importantes: trazer os nomes para letras minúsculas, retirar acentuação e remoção dos espaços extras.
+3.  Utilize o comando separate_rows() para separar as linhas que contém múltiplos valores (como é o caso da coluna CLIENTE)
+4.  Padronize os nomes dos clientes e dos cargos com o uso de case_when() e str_detect()
+5.  Crie uma versão final do banco de dados, retirando as colunas desimportantes, com o nome "bd_colab_aloc_final"
+
+```{r}
+
+alocacao_colaboradores_tidy <- alocacao_colaboradores %>% 
+  # Letras minúsculas
+  mutate_all(str_to_lower) %>% 
+  # Retirando acentos
+  mutate_all(.funs = stri_trans_general, "Latin-ASCII") %>% 
+  # Remoção de espaços extras
+  mutate(CLIENTE_tidy = str_replace(CLIENTE, pattern = ' ', replacement = '')) %>% 
+  # Separação de linhas dos colaboradores com múltiplos clientes
+  separate_rows(CLIENTE_tidy) %>% 
+  # resolvendo o CARGO ATUAL COMPLEMENTO
+  unite(`CARGO ATUAL`,`CARGO ATUAL`,`CARGO ATUAL COMPLEMENTO`,
+        sep = '',
+        na.rm = T) %>% 
+  # Recodificação/padronização dos nomes com case_when()
+  mutate(CLIENTE_tidy_names =
+           case_when(str_detect(CLIENTE_tidy, pattern = 'micro') ~ 'Microsoft',
+                     str_detect(CLIENTE_tidy, pattern = 'link') ~ 'Linkedin',
+                     str_detect(CLIENTE_tidy, pattern = 'goog') ~ 'Google',
+                     str_detect(CLIENTE_tidy, pattern = 'yah') ~ 'Yahoo',
+                     str_detect(CLIENTE_tidy, pattern = 'int') ~ 'Interno',
+                     TRUE ~ CLIENTE_tidy),
+         CARGO_tidy_names = 
+           case_when(str_detect(`CARGO ATUAL`, pattern = 'enge') ~ 'ED',
+                     str_detect(`CARGO ATUAL`, pattern = 'analist') ~ 'AD',
+                     str_detect(`CARGO ATUAL`, pattern = 'lider') ~ 'Líder',
+                     str_detect(`CARGO ATUAL`, pattern = 'agil') ~ 'Agile M.',
+                     str_detect(`CARGO ATUAL`, pattern = 'cient') ~ 'CD',
+                     str_detect(`CARGO ATUAL`, pattern = 'est') ~ 'Estagiário',
+                     TRUE ~ `CARGO ATUAL`))
+
+bd_colab_aloc_final <- alocacao_colaboradores_tidy %>% 
+  select(-c(CLIENTE, `CARGO ATUAL`, CLIENTE_tidy))
+```
+
+## Passo 5 - Análise
+
+Você recebeu um conjunto de solicitações da chefe de RH, e ela te ligou às 03:00AM para te lembrar que ela também quer análises, não só as figuras... :)
+
+### Análises de colaboradores:
+
+Nesta sessão, o seu trabalho é criar quatro gráficos de barras. Em todos eles, o eixo Y é o número de colaboradores e o eixo X é uma outras variáveis identificatórias.
+
+Se você se sentir confortável, formule uma função para resolver o problema.
+
+**ATENÇÃO:** Repare que em função da múltipla associação de alguns colaboradores a diferentes clientes, houve uma superestimação da importância desses indivíduos. Você deve resolver isto trabalhando com o banco resultante "bd_colab_aloc_final" para as questões que envolvem clientes, e um outro banco que considere uma linha por indivíduo para questões que não envolvem clientes. O jeito mais simples de fazer isto é usar um distinct() pelo nome do colaborador.
+
+#### 5.1. Gráfico de barras do número de colaboradores por cargo;
+
+```{r}
+# Query
+colab_cargo <- bd_colab_aloc_final %>% 
+  distinct(NOME, .keep_all = T) %>% 
+  group_by(CARGO_tidy_names) %>% 
+  count()
+
+# Gráfico
+
+colab_cargo %>% 
+  ggplot(mapping = aes(x = fct_reorder(CARGO_tidy_names, -n),
+                       y = n)) +
+  geom_col(colour = 'grey3') +
+  theme_bw() +
+  labs(title = "Número de colaboradores por cargo",
+       x = 'Cargo',
+       y = 'Percentual',
+       caption = 'MQuinho - Meios Jr.') +
+  theme(plot.title = element_text(face = "bold",                    
+                                  margin = margin(10, 0, 5, 0),
+                                  size = 13),
+        axis.title.x = element_text(margin = margin(t = 10),
+                                    size = 12,
+                                    face = 'italic'),
+        axis.title.y = element_text(margin = margin(r = 10),
+                                    size = 12,
+                                    face = 'italic'),
+        plot.caption = element_text(size = 12))
+  
+
+
+
+# ------ Abordagem funcional ----------
+
+# Query
+
+calcula_contagem   <- function(bd, var, cliente = F) {
+  
+  if(cliente == T){
+    
+    bd %>% 
+      distinct(NOME, .keep_all = T) %>% 
+      count({{var}})
+  }
+  else{
+    bd %>% 
+    count({{var}})
+    }
+}
+
+# Função para construir os gráficos de barras
+constroi_barras_ex <- function(bd, x, y, title, lab.x, lab.y, caption) {
+  
+  bd %>%
+    ggplot(mapping = aes(x = {{x}},
+                         y = {{y}})) +
+    geom_col(colour = 'grey3') +
+    theme_bw() +
+    labs(title = title,
+         x = lab.x,
+         y = lab.y,
+         caption = caption)
+    
+    
+}
+
+# Aplicação da função de contagem:
+colab_cargo <- calcula_contagem(bd = bd_colab_aloc_final,
+                                var = CARGO_tidy_names,
+                                cliente = T)
+
+colab_cargo
+
+# Aplicação da função de gráfico de barras
+
+barras_cargo <- constroi_barras_ex(bd = colab_cargo,
+                                   x = fct_reorder(CARGO_tidy_names, -n),
+                                   y = n, 
+                                   title = 'Colaboradores por cargo',
+                                   lab.x = 'Cargo',
+                                   lab.y = 'Contagem',
+                                   caption = 'MQuinho 2021')
+
+barras_cargo
+
+```
+
+#### 5.2. Gráfico de barras do número de colaboradores por sexo;
+
+#### 5.3. Gráfico de barras do número de colaboradores por cliente;
+
+#### 5.4. Gráfico de barras do número de colaboradores por UF;
+
+### 5.3. Boxplot dos salários dos colaboradores por cargo;
+
+### 5.4. Diagrama de dispersão dos salários por tempo de casa
+
+### 5.5. Desempenho dos colaboradores por

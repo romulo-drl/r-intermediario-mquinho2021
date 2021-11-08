@@ -1,0 +1,1293 @@
+---
+title: "MQuinho de inverno - R para análise de dados (script)"
+author: "Rômulo Damasceno"
+date: "6/7/2021"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 4
+    df_print: paged
+  pdf_document: default
+editor_options: 
+  chunk_output_type: inline
+---
+
+```{r, include=FALSE}
+
+#Alguns argumentos que definirão coisas para todos os chunks:
+knitr::opts_chunk$set(knitr.table.format = "html",
+                      cache =  TRUE, 
+                      echo = TRUE,
+                      warning = FALSE,
+                      message = FALSE)
+
+```
+
+## 1.Onde estamos?
+
+### 1.1. O R
+
+O R é uma linguagem de programação desenvolvida por estatísticos, para finalidades estatísticas. Trata-se de uma linguagem extremamente eficiente na execução de procedimentos de análise de dados.
+
+### 1.2. O RStudio
+
+O RStudio é uma IDE (integrated development environment), que torna o ambiente de trabalho muito mais intuitivo, oferecendo novas interfaces e a possibilidade de visualização direta dos seus arquivos, objetos, gráficos, etc.
+
+### 1.3. O RMarkdown
+
+O RMarkdown é um dos tipos de arquivo mais importantes do R. Trata-se de um arquivo que permite a criação de um relatório e simultâneamente a execução de códigos de programação.
+
+## 2. O processo de análise de dados
+
+![](https://ismayc.github.io/moderndiver-book/images/tidy1.png)
+
+1.  Importar
+2.  Limpar
+3.  **Compreender:** Transformar \<--\> Visualizar \<--\> Modelar
+4.  Comunicar
+
+## 3. A iniciativa Tidyverse
+
+![](https://i.pinimg.com/originals/bb/5b/66/bb5b6645f8d4ee7f2780dfa87c1dcd52.jpg)
+
+O Tidyverse é um conjunto de pacotes do R que possui ferramentas para basicamente todos os problemas de análise de dados que você provavelmente vai enfrentar ao longo da vida nos seus trabalhos quantitativos. Todos os pacotes do tidyverse funcionam de maneira extremamente integrada e utilizá-los faz com que o trabalho fique realmente muito mais fácil.
+
+**dplyr e tidyr:**
+
+São os pacotes responsáveis (especialmente o dplyr) pelos procedimentos de query, manipulação de bancos de dados, seleção de colunas, filtragens por condições, reordenamento do banco de dados por condições, criação de novas variáveis, produção de estatísticas síntese, etc. Muito do nosso trabalho é feito aqui!
+
+A principal função do tidyr é alterar estruturalmente os dataframes resultantes das funções do dplyr, transformando colunas em linhas, linhas em colunas, unindo-as ou separando-as. São funções bastante úteis ao manipular o dado para criar tabelas ou fazer operações com dataframes.
+
+**forcats:**
+
+Trabalhando com variáveis de tipo factor. Utilizado principalmente para reordenar os níveis de uma variável categórica.
+
+**purrr:**
+
+Utilizado para replicar procedimentos feitos em um vetor, para múltiplos vetores. É um grande aliado para evitar a repetição de código e poupa muito tempo de trabalho.
+
+**ggplot2:**
+
+Um dos pacotes mais importantes do tidyverse, o ggplot é capaz de produzir gráficos altamente customizáveis e bastante profissionais. É uma das ferramentas mais competentes disponíveis e mais largamente utilizadas para a função atualmente.
+
+**stringr:**
+
+A principal função do stringr é facilitar o trabalho com variáveis textuais despadronizadas (a resposta de uma pergunta aberta de um questionário por exemplo). O stringr é capaz de reconhecer padrões textuais e executar diversos tipos de transformações com eles.
+
+**haven, readxl e readr**
+
+Os três pacotes são responsáveis pela importação dos dados de diversos formatos para o R. o Haven é utilizado para formatos SPSS, SAS e Stata, o readxl lê arquivos de tipo excel e o readr lê arquivos de tipo textual, com separadores como vírgulas, pontos, ponto e vírgula, etc.
+
+**tibble:**
+
+O pacote tibble transforma dataframes em um formato mais simplificados deles próprios. É o formato de dataframes do tidyverse.
+
+## 4. Programação: Noções preliminares
+
+### 4.1. A Lógica de objetos e funções no R
+
+1.  Objetos nada mais são do que um agregado de informações em um formato: dataframes, listas, funções, etc.
+2.  Os objetos carregados podem ser visualizados na aba environment.
+3.  Eles são resultados de operações de atribuição.
+
+**Exemplos:**
+
+```{r}
+# Atribua a um objeto 'x' o valor 1
+x <- 1
+
+# Atribua a um objeto 'Y' o conjunto de números 1,2,3,4 e 5
+y <- c(1,2,3,4,5)
+y <- c(1:5)
+
+# Some os valores contidos no objeto y, salvando-os num vetor 'z'
+z <- sum(y)
+z
+
+# Testes lógicos
+x == y
+```
+
+Note que os objetos tem origem tanto em atribuições diretas de valores, como no caso do primeiro e do segundo exemplo, mas também podem ser resultado de aplicação de uma função a um objeto pré-existente, como no terceiro exemplo. Este último uso é o mais frequente, pois diversas são as vezes que precisamos guardar informações que são resultado de operações feitas com funções.
+
+### 4.2. Diretório de trabalho ou diretório padrão
+
+O diretório padrão é o local onde os arquivos, sejam eles de input (bancos de dados por exemplo) ou de output (figuras prontas, tabelas, etc) são guardados. Ao criar um novo projeto, o R nos dá a orientação de criar ou escolher um diretório padrão pré-existente. Lá será o local onde o software buscará os arquivos que solicitarmos.
+
+```{r}
+getwd()
+```
+
+## 5. Carregando e instalando os pacotes necessários
+
+```{r setup}
+# install.packages("tidyverse")
+# install.packages("DataExplorer")
+# install.packages("scales")
+# install.packages("readxl")
+# install.packages("kableExtra")
+# install.packages("skimr")
+
+library(tidyverse)
+library(DataExplorer)
+library(scales)
+library(readxl)
+library(kableExtra)
+library(skimr)
+
+
+
+# Carregando pacotes com o purrr
+pacotes <- c('tidyverse', 'DataExplorer', 'readxl', 'kableExtra', 'skimr')
+map(pacotes, library, character.only = TRUE)
+```
+
+## 6. Importação
+
+### 6.1 Leitura do banco de dados - readr e readxl
+
+```{r}
+# Extensão .xlsx (readxl)
+titanic <- read_excel('titanic.xlsx')
+
+titanic_csv <- read_csv('titanic_csv.csv')
+
+# Visualização do banco completo
+View(titanic)
+
+# Removendo objetos 
+rm(titanic_csv)
+```
+
+Existem muitas funções que fazem a leitura de diferentes formatos de dados. As mais comuns são o read_csv e read_excel, porém existem opções para arquivo de tipo STATA, SAS, SPSS, entre outros.
+
+## 7. Explorando o banco de dados
+
+### 7.1. Análise da estrutura do banco de dados
+
+**R base:**
+
+1.  [str()](https://stat.ethz.ch/R-manual/R-patched/library/utils/html/str.html): Mostra várias informações sobre a estrutura do dado
+
+2.  [summary()](https://stat.ethz.ch/R-manual/R-devel/library/base/html/summary.html): Estatísticas descritivas simples sobre cada coluna do dado
+
+3.  [colnames()](https://stat.ethz.ch/R-manual/R-devel/library/base/html/colnames.html): Mostra o nome das variáveis do dado
+
+4.  [head()](https://stat.ethz.ch/R-manual/R-devel/library/utils/html/head.html): Mostra o conteúdo das seis (ou mais, você escolhe) primeiras linhas do dado
+
+5.  [tail()](https://stat.ethz.ch/R-manual/R-devel/library/utils/html/head.html): Mostra o conteúdo das seis últimas linhas do dado
+
+6.  [View()](https://stat.ethz.ch/R-manual/R-devel/library/utils/html/View.html): Mostra o dado em formato de planilha (não recomendável para bases muito grandes e para PC's com menor capacidade de processamento)
+
+7.  [skim()](https://stat.ethz.ch/R-manual/R-devel/library/utils/html/View.html): Produz algumas estatísticas descritivas extremamente úteis de maneira muito rápida e simplificada
+
+```{r}
+
+# R base - Banco inteiro
+str(titanic)
+summary(titanic)
+colnames(titanic)
+
+dez_primeiros <- head(titanic, n = 10)
+dez_ultimos <- tail(titanic, n = 10)
+
+#skim(titanic)
+
+
+# Coluna a coluna
+summary(titanic$Sex)
+head(titanic$Name)
+tail(titanic$Survived)
+```
+
+### 7.2 Tipos de dado e conversões no R:
+
+Existe uma infinidade de tipos de dados no R. Os mais importantes pra nós são:
+
+1.  **Characters/Strings -** Variáveis de texto reconhecidas como "sem padrão".
+
+2.  **Numerics/Integers -** Numéricas em geral ou números inteiros
+
+3.  **Factors -** Variáveis textuais bastante específicas e com níveis, reconhecidas como tendo um padrão.
+
+**NOTA:** Realizar operações com dados no formato errado é uma das fontes mais comuns de erros de diversos tipos.
+
+#### 7.2.1. Conversão de dados no R
+
+```{r}
+# Jeito mais longo, mas mais intuitivo
+titanic <- titanic %>% 
+  mutate(Survived = as.factor(Survived),
+         Pclass = as.factor(Pclass),
+         Sex = as.factor(Sex),
+         Embarked = as.factor(Embarked))
+
+
+# Criando um vetor com os nomes das variáveis que serão transformadas
+cols2factor <- c('Survived', 'Pclass', 'Sex', 'Embarked')
+
+# Transformando-as
+titanic <- titanic %>%
+  mutate_at(cols2factor, as.factor)
+```
+
+### 7.3 Utilizando o pacote DataExplorer
+
+O DataExplorer é um pacote extremamente útil, pois faz essa parte de análise exploratória com um clique. As funcionalidades mais interessantes são a matriz de correlações, os gráficos para variáveis categóricas e as informações sobre a estrutura do dado.
+
+#### 7.3.1 - Relatório descritivo completo
+
+```{r}
+# titanic %>%
+#  create_report(output_file = 'titanic_report',
+#                report_title = 'EDA titanic')
+ 
+
+```
+
+#### 7.3.2 - Pedaços específicos do relatório
+
+```{r}
+
+# Características gerais do banco de dados
+titanic %>%
+  introduce()
+
+# Número de colunas discretas, contínuas, missings
+titanic %>% 
+  plot_intro()
+
+#Gráficos de frequência das variáveis categóricas
+titanic %>% 
+  plot_bar()
+
+#Gráfico de correlações
+titanic %>% 
+  plot_correlation()
+
+
+
+
+plot_correlation(na.omit(titanic))  
+```
+
+## 8. Manipulação do banco de dados utilizando o pacote dplyr (Data Wrangling)
+
+O dplyr é um dos pacotes mais utilizados do tidyverse pois condensa várias funções que precisam ser utilizadas constantemente no processo de análise de dados, como seleção de colunas, filtragem de casos, recodificações de variáveis em outras, etc. Tais operações são feitas com 5 verbos principais:
+
+-   `filter()` : Filtra as observações por uma ou várias condições.
+
+-   `arrange()` : Reordena as linhas com base numa coluna de referência.
+
+-   `select()` : Seleciona as colunas desejadas.
+
+-   `mutate()` : Cria novas variáveis que são funções de variáveis pré-existentes.
+
+-   `summarise()` : Collapse many values down to a single summary.
+
+### 8.1. Operadores lógicos auxiliares
+
+Para diversos procedimentos no dplyr, são úteis os operadores lógicos:
+
+| Símbolo    | Nome do operador                  | Exemplo         |
+|------------|-----------------------------------|-----------------|
+| \>         | Maior que                         | x \> y          |
+| \>=        | Maior ou igual                    | x \>= y         |
+| \<         | Menor que                         | x \< y          |
+| \<=        | Menor ou igual                    | x \<= y         |
+| ==         | Igual a                           | x == y          |
+| !=         | Diferente de                      | x != y          |
+| %in% e c() | Elementos específicos do conjunto | x %in% c(x,y,z) |
+| \|         | ou                                | x \| y          |
+| &          | E                                 | x & y           |
+
+: Operadores lógicos no R
+
+### 8.2 Os verbos do dplyr:
+
+#### 8.1.2. select()
+
+É o verbo que permite a seleção de [colunas/variáveis]{.ul} específicas do banco de dados.
+
+```{r}
+# Colunas especificadas
+titanic_reduzido <- titanic %>% 
+  select(PassengerId, Name, Survived)
+
+# Todas menos uma específica
+titanic %>% 
+  select(-PassengerId)
+
+# Várias exceto um conjunto específico
+
+variaveis_interesse <- c('PassengerId', 'Name', 'Survived')
+
+titanic %>% 
+  select(-variaveis_interesse)
+```
+
+#### 8.1.3. filter()
+
+É o verbo que permite a filtragem de [linhas/casos]{.ul} do banco de dados por uma ou mais condições.
+
+**Variáveis categóricas:**
+
+```{r}
+
+# Uma característica categórica
+titanic %>% 
+  filter(Sex == 'female')
+
+# Duas características categóricas simultâneamente
+mulheres_sobreviventes <- titanic %>% 
+  filter(Sex == 'female' & Survived == 1)
+
+
+# Por uma característica ou outra
+mulheres_ou_southesburg <- titanic %>% 
+  filter(Sex == 'female'| Embarked == 'S')
+
+
+# Por um conjunto de características em uma mesma coluna
+embarked_S_ou_C <- titanic %>% 
+  filter(Embarked %in% c('S','C'))
+```
+
+**Variáveis numéricas:**
+
+```{r}
+
+# ----------- Filtragem por variáveis numéricas  ----------
+
+# Um valor específico
+titanic %>% 
+  filter(Age == 22)
+
+
+# Valores maiores ou iguais a / Menores ou iguais a
+titanic %>% 
+  filter(Age >= 25) %>% 
+  arrange(desc(Age))
+
+
+# Valores num intervalo
+titanic %>% 
+  filter(Age >= 22 & Age <= 25)
+
+titanic %>% 
+  filter(between(Age, 22, 25))
+
+
+# Um conjunto específico de valores
+titanic %>% 
+  filter(Age %in% c(22, 23, 30, 35))
+
+# Filtragem de NA's
+
+titanic %>% 
+  count(is.na(Age))
+
+titanic_nao_NAs <- titanic %>% 
+  filter(!is.na(Age))
+```
+
+#### 8.1.4. mutate()
+
+Cria novas variáveis ou altera as pré-existentes partindo das variáveis iniciais do banco de dados.
+
+```{r}
+
+# Número de familiares a bordo
+titanic_familiares <- titanic %>% 
+  mutate(n_familiares = SibSp + Parch)
+
+# case_when(): Passageiros por faixa etária (Procedimento de recodificação)
+titanic <- titanic %>% 
+  mutate(faixas_etarias = case_when(Age <= 15 ~ '15 anos ou menos',
+                                    Age >= 16 & Age <= 29 ~ '16 a 29',
+                                    Age >= 30 & Age <= 49 ~ '30 a 49',
+                                    Age >= 50 & Age <= 59 ~ '50 a 59',
+                                    Age >= 60 ~ '60 ou mais')) 
+## Forma 2
+titanic <- titanic %>% 
+  mutate(faixas_etarias1 = case_when(Age <= 15 ~ '15 anos ou menos',
+                                     between(Age, 16, 29) ~ '16 a 29',
+                                     between(Age, 30, 49) ~ '30 a 49',
+                                     between(Age, 50, 59) ~ '50 a 59',
+                                     Age >= 60 ~ '60 ou mais'))
+
+# if_else: Passageiro idoso dummy
+titanic <- titanic %>% 
+  mutate(idoso_dummy = if_else(condition = Age >= 60,
+                               true = 1,
+                               false = 0))
+
+
+```
+
+#### 8.1.5. group_by() e summarise()
+
+-   `group_by()`: Agrupa as observações do banco de dados para as quais serão calculadas alguma estatística (Por exemplo: contagem de homens e mulheres por ter ou não sobrevivido ao acidente).
+
+-   `summarise()` : Computa estatísticas para agrupamentos prévios do banco de dados.
+
+**Tabelas univariadas:**
+
+```{r}
+#Criação de tabelas - Forma R base
+table(titanic$Sex)
+table(titanic$Sex, titanic$Survived)
+
+#Criação de tabelas - Forma TIDYVERSE
+titanic %>% 
+  count(Survived, Sex)
+
+
+# Contagem de sobreviventes e não sobreviventes
+titanic %>% 
+  group_by(Survived, Sex) %>% 
+  summarise(contagem = n())
+
+# Percentual de sobreviventes e não sobreviventes
+titanic %>% 
+  group_by(Survived) %>% 
+  summarise(contagem = n()) %>% 
+  mutate(percentual = contagem/sum(contagem))
+
+
+# Fechar percentuais pelo agrupamento correto com a função ungroup() seguida de group_by()
+titanic %>% 
+  group_by(Sex, Survived) %>% 
+  summarise(contagem = n()) %>%
+  ungroup() %>% 
+  group_by(Survived) %>% 
+  mutate(percentual = contagem/sum(contagem))
+
+
+
+
+```
+
+**Tabelas bivariadas:**
+
+```{r}
+
+# Contagem de sobreviventes e não sobreviventes por sexo
+titanic %>% 
+  group_by(Survived, Sex) %>% 
+  summarise(contagem = n())
+
+# Percentual de sobreviventes e não sobreviventes por sexo
+titanic %>% 
+  group_by(Survived, Sex) %>% 
+  summarise(contagem = n()) %>% 
+  mutate(percentual = contagem/sum(contagem))
+
+# Formato de tabela
+sobreviventes_sexo <- titanic %>% 
+  group_by(Survived, Sex) %>% 
+  summarise(contagem = n()) %>% 
+  mutate(percentual = contagem/sum(contagem)) %>% 
+  select(-percentual) %>% 
+  pivot_wider(names_from = Sex,
+              values_from = contagem)
+
+sobreviventes_sexo
+```
+
+**Computando estatísticas para grupos**
+
+```{r}
+
+# ---------------- Estatísticas básicas - Idade ----------------
+titanic %>% 
+  group_by(Sex, Survived) %>% 
+  summarise(media_idade = mean(Age, na.rm = T),
+            desvio_idade = sd(Age, na.rm = T),
+            min = min(Age, na.rm = T),
+            q25 = quantile(Age, probs = 0.25, na.rm = T),
+            q50 = quantile(Age, probs = 0.5, na.rm = T),
+            q75 = quantile(Age, probs = 0.75, na.rm = T),
+            max = max(Age, na.rm = T),
+            IQR = IQR(Age, na.rm = T))
+
+
+#skim(titanic$Age)
+
+
+# Para evitar a repetição de na.rm = T em todos os argumentos
+titanic %>% 
+  filter(!is.na(Age)) %>%
+  group_by(Sex) %>% 
+  summarise(media_idade = mean(Age),
+            desvio_idade = sd(Age),
+            min = min(Age),
+            q25 = quantile(Age, probs = 0.25),
+            q50 = quantile(Age, probs = 0.5),
+            q75 = quantile(Age, probs = 0.75),
+            max = max(Age),
+            IQR = IQR(Age))
+
+```
+
+#### 8.1.6. arrange()
+
+Reordena as linhas com base numa coluna de referência.
+
+```{r}
+
+# Crescente - Idade
+titanic %>%
+  select(Name, Age) %>%
+  arrange(Age)
+
+# Decrescente - Idade
+titanic %>% 
+  select(Name, Age) %>% 
+  arrange(-Age)
+
+titanic %>% 
+  select(Name, Age) %>% 
+  arrange(desc(Age))
+
+# Crescente - Idade e tipo de ticket
+titanic %>% 
+  select(Name, Age, Survived) %>% 
+  arrange(Survived, Age)
+```
+
+## 9. Estética de tabelas - Kable e KableExtra
+
+Maiores referências: <https://haozhu233.github.io/kableExtra/awesome_table_in_html.html>
+
+```{r}
+# Recuperando a construção do objeto com percentuais de sobreviventes por sexo
+
+unique(titanic$Sex)
+
+sobreviventes_sexo <- titanic %>% 
+  mutate(Sobreviveram = case_when(Survived == 1 ~ 'Sobreviventes',
+                                  Survived == 0 ~ 'Não sobreviventes'),
+         Sexo =         case_when(Sex == 'female' ~ 'Mulher',
+                                  Sex == 'male' ~ 'Homem')) %>% 
+  group_by(Sobreviveram, Sexo) %>% 
+  summarise(contagem = n()) %>% 
+  mutate(percentual = percent(contagem/sum(contagem))) %>%
+  select(-contagem) %>% 
+  pivot_wider(names_from = Sexo,
+              values_from = percentual)
+
+
+#Frequência e percentual
+survived_sex_countperc <- titanic %>% 
+  mutate(Sobreviveram = case_when(Survived == 1 ~ 'Sobreviventes',
+                                  Survived == 0 ~ 'Não sobreviventes'),
+         Sexo = case_when(Sex == 'female' ~ 'Mulher',
+                          Sex == 'male' ~ 'Homem')) %>% 
+  group_by(Sobreviveram,Sexo) %>% 
+  summarise(contagem = n()) %>%
+  mutate(perc = contagem/sum(contagem),
+         contagem_percentual = paste0(contagem," (",round(perc*100,2)," %)")) %>%
+  select(-contagem,-perc) %>% 
+  pivot_wider(names_from = Sexo,
+              values_from = contagem_percentual)
+
+
+# Melhorando a estética
+
+survived_sex_countperc %>% 
+  kable(caption = 'Percentual de sobreviventes do titanic por sexo',
+        col.names = c('',
+                      'Mulheres',
+                      'Homens')) %>%
+  footnote(general = 'MQuinho de inverno - Banco de dados Titanic',
+           general_title = 'Fonte:',
+           footnote_as_chunk = T) %>% 
+  kable_classic_2(html_font = 'Cambria') %>% #full_width = F para compactar a                                                  tabela 
+  kable_styling(bootstrap_options = c("striped",
+                                      "hover", 
+                                      "condensed"),
+                            font_size = 15)
+  
+```
+
+## 10. Gráficos com o ggplot2
+
+### 10.1. A Gramática dos Gráficos: componentes de um gráfico ggplot2
+
+![](https://pbs.twimg.com/media/EQ-uBWcX0AIc_bs.png){width="522"}
+
+```{r}
+titanic %>% 
+  ggplot(mapping = aes(x = Sex,
+                       y = Age,
+                       fill = Sex)) + 
+  geom_boxplot()
+```
+
+**\
+The Grammar of Graphics - livro por Wilkinson**
+
+O ggplot2 é baseado na gramática dos gráficos, a ideia de que é possível construir qualquer tipo de gráfico a partir dos mesmos componentes: Um banco de dados, um sistema de coordenadas e um geom, ou uma forma geométrica que é capaz de representar visualmente os dados.
+
+```{r}
+# Um gráfico com todos os componentes
+
+mpg %>%                                             # Data 
+  ggplot(mapping = aes(x = cty,                     # Aesthetics 1 (X)
+                       y = hwy,                     # Aesthetics 2 (Y)
+                       colour = manufacturer,       # Aesthetics 3 (Colour)
+                       shape = drv,                 # Aesthetics 4 (Shape)
+                       alpha = 1)) +                # Asthetics 5 (Alpha)
+  geom_point() +                                    # Geometries, Statistics
+  facet_wrap(~ class) +                             # Facets
+  xlim(0,40) +                                      # Coordinates
+  labs(title = 'Um gráfico com muitas informações que eu não sei o que significam',
+       subtitle = 'Pois não sei nada de carro =)',
+       caption = 'Fonte: Bases confusas do R',
+       y = 'hwy',
+       x = 'cty', 
+       colour = 'Fabricante') +                      # Labels
+  theme_minimal()                                    # Theme
+
+
+```
+
+1.  **Data (Dado)**
+
+Não existe gráfico se não há dado, a qualidade do dado e as manipulações feitas previamente são as únicas fontes de informação para os comandos executados no ggplot2.
+
+2.  **Mapping (Mapeamento de eixos)**
+
+Mapeamento do dado no plano cartesiano. O que estará no eixo X? O que estará no eixo Y? Eu gostaria que minhas observações fossem dividas por alguma outra variável?
+
+3.  **Statistics (Estatísticas padrão)**
+
+Dentro de cada "geom\_" existe uma série de padrões (defaults) que facilitam consideravelmente nossa vida na hora de plotar um gráfico. O gráfico de barras, por exemplo, tem o eixo Y fixado como a soma das linhas para cada categoria de X, ou seja, contagem. Boxplots calculam a mediana, os quartis e definem os outliers automaticamente, etc.
+
+4.  **Scales (Escalas)**
+
+As escalas são outros tipos de mapeamento que não apenas o eixo X e Y. É possível dividir as observações de um gráfico de pontos por cores ou formatos diferentes dos pontos, por exemplo.
+
+5.  **Geometries (Forma geométrica)**
+
+Os geoms, ou geometries, são os responsáveis por representar aquilo que foi estabelecido como o mapeamento dos eixos (x, y e scales) numa forma geométrica escolhida.
+
+-   geom_bar() e geom_col() para gráficos de barras
+
+-   geom_histogram() para histogramas
+
+-   geom_boxplot() para boxplots
+
+-   geom_point() para diagramas de dispersão
+
+-   geom_line() para linhas
+
+6.  **Facets (Lados/perspectivas/faces)**
+
+Os Facets nos possibilitam criar diversos gráficos de uma só vez num mesmo plano cartesiano. Posso querer, por exemplo, saber a variação da renda por idade por escolaridade em dois anos diferentes e quem faz isso por mim é o facet_wrap().
+
+7.  **Theme (Temas)**
+
+Propriedades estéticas gerais que não são indispensáveis para interpretação.
+
+### 10.2. Mão na massa: gráficos por tipo
+
+A estrutura básica de um argumento ggplot é composta de:
+
+1.  Um objeto que contenha os dados que serão plotados; no formato correto
+
+2.  A função ggplot(), seguido do mapeamento dos eixos X e Y do seu gráfico e algum argumento de escala opcional
+
+3.  Um argumento de definição do tipo de gráfico - Forma geométrica (geom\_)
+
+4.  É importante lembrar que operador de continuidade do ggplot não é o pipe '%\>%' , mas sim um sinal '+'.
+
+    > No ggplot nada se transforma, tudo se adiciona. Por isso o operador +.
+
+#### 10.2.1. Gráfico de barras
+
+É o tipo de gráfico mais comum, seu objetivo é, em geral, contar os níveis de uma variável categórica. O geom_bar não requer que você estabeleça um eixo Y, pois a "statistic" padrão (stat_count) dá conta desse trabalho automaticamente, calculando a contagem de cada nível no dataset.
+
+**Gráfico de barras, frequência absoluta, uma variável - Sexo**
+
+```{r}
+
+titanic %>% 
+  ggplot(mapping = aes(x = Sex)) +
+  geom_bar()
+```
+
+**Gráfico de barras frequência relativa (%), uma variável - Sexo**
+
+```{r}
+# Query prévio (dplyr)
+frequencia_sexo <- titanic %>% 
+  group_by(Sex) %>% 
+  summarise(contagem = n()) %>% 
+  mutate(percentual = contagem/sum(contagem))
+
+# Utilização do query para fazer o gráfico
+frequencia_sexo %>% 
+  ggplot(mapping = aes(x = Sex,
+                       y = percentual)) +
+  geom_col() +
+  scale_y_continuous(label = percent)
+```
+
+**Gráfico de barras, frequência absoluta, duas variáveis - Sexo e tipo de ticket**
+
+```{r}
+#Barras empilhadas
+titanic %>% 
+  ggplot(mapping = aes(x = Sex,
+                       fill = Pclass)) +
+  geom_bar()
+
+#Barras lado-a-lado
+titanic %>% 
+  ggplot(mapping = aes(x = Sex,
+                       fill = Pclass)) +
+  geom_bar(position = 'dodge')
+```
+
+**Gráfico de barras, frequência relativa (%) , duas variáveis - Sexo e tipo de ticket**
+
+```{r}
+# Query 
+frequencia_perc_sexoticket <- titanic %>% 
+  group_by(Sex, Pclass) %>% 
+  summarise(contagem = n()) %>% 
+  mutate(percentual = contagem/sum(contagem))
+
+
+#Barras empilhadas
+frequencia_perc_sexoticket %>% 
+  ggplot(mapping = aes(x = Sex,
+                       y = percentual,
+                       fill = Pclass)) +
+  geom_col() +
+  scale_y_continuous(label = percent)
+
+#Barras lado-a-lado
+frequencia_perc_sexoticket %>% 
+  ggplot(mapping = aes(x = Sex,
+                       y = percentual,
+                       fill = Pclass)) +
+  geom_col(position = 'dodge') +
+  scale_y_continuous(label = percent)
+
+
+
+```
+
+**Alguns melhoramentos estéticos para o gráfico: Sexo X Ticket**
+
+```{r}
+# Criando um label para colocar acima das barras do gráfico, alterando informações previamente a plotagem
+frequencia_perc_sexoticket <- frequencia_perc_sexoticket %>% 
+  mutate(numeros_texto = percent(percentual),
+         sexo_plot = case_when(Sex == 'female' ~ 'Mulheres',
+                               Sex == 'male' ~ 'Homens'))
+
+# O Código do gráfico
+frequencia_perc_sexoticket %>% 
+  ggplot(mapping = aes(x = sexo_plot,
+                       y = percentual,
+                       fill = Pclass,
+                       label = numeros_texto)) +            
+  geom_col(colour = 'grey3') +
+  geom_text(position = position_stack(vjust = 0.5)) +
+  scale_y_continuous(label = percent) +
+  scale_fill_brewer(palette = 'Dark2') +
+  theme_bw() +
+  labs(title = "Percentual de passageiros por sexo e tipo de ticket",  # Novidade
+       subtitle = 'Titanic - 1912',
+       x = 'Sexo',
+       y = 'Percentual',
+       fill = 'Ticket',
+       caption = 'MQuinho de inverno - Meios Jr.') +
+  theme(plot.title = element_text(face = "bold",                       # Novidade
+                                  margin = margin(10, 0, 5, 0),
+                                  size = 13),
+        axis.title.x = element_text(margin = margin(t = 10),
+                                    size = 12,
+                                    face = 'italic'),
+        axis.title.y = element_text(margin = margin(r = 10),
+                                    size = 12,
+                                    face = 'italic'),
+        plot.caption = element_text(size = 12))
+```
+
+#### 10.2.2. Histogramas
+
+O histograma é um dos tipos de gráfico mais apropriados para mostrar a distribuição de frequências de uma variável numérica. A estatística padrão (stat) dos histogramas é o stat_bin.
+
+**Idade no banco de dados**
+
+**Histograma simples**
+
+```{r}
+# Função padrão
+titanic %>% 
+  ggplot(mapping = aes(x = Age)) +
+  geom_histogram()
+
+# Estética
+titanic %>% 
+  ggplot(mapping = aes(x = Age)) +
+  geom_histogram(alpha = 0.8,
+                 colour = 'black') +
+  theme_bw() +
+  labs(title = 'Distribuição da idade dos passageiros do Titanic', 
+       y = 'Contagem',
+       x = 'Idade',
+       caption = "MQuinho de inverno - Meios Jr.") +
+  theme(plot.title = element_text(face = "bold",
+                                  margin = margin(10, 0, 10, 0),
+                                  size = 12),
+        axis.title.x = element_text(margin = margin(t = 5),
+                                    size = 13,
+                                    face = 'italic'),
+        axis.title.y = element_text(margin = margin(r = 10),
+                                    size = 13,
+                                    face = 'italic'),
+        plot.caption = element_text(size = 11))
+```
+
+**Histograma utilizando densidade + curva de densidade**
+
+```{r,warning=FALSE}
+
+# Argumento base
+titanic %>% 
+  ggplot(mapping = aes(x = Age)) +
+  geom_histogram(mapping = aes(y = ..density..),
+                 colour = "grey30",
+                 fill = "white") +
+  geom_density(alpha = .1,
+               fill = "antiquewhite3") +
+  facet_wrap(~Sex)
+
+# Estética
+titanic %>% 
+  mutate(Sexo = case_when(Sex == 'female' ~ 'Feminino',
+                          Sex == 'male' ~ 'Masculino')) %>% 
+  ggplot(mapping = aes(x = Age)) +
+  geom_histogram(aes(y = ..density..),
+                 colour = "grey30",
+                 fill = "white") +
+  geom_density(alpha = .1,
+               fill = "antiquewhite3") +
+  facet_wrap(~Sexo) +
+  theme_bw() +
+  labs(title = 'Densidade da idade dos passageiros do Titanic', 
+       y = 'Densidade',
+       x = 'Idade',
+       caption = "MQuinho de inverno - Meios Jr.") +
+  theme(plot.title = element_text(face = "bold",
+                                  margin = margin(10, 0, 10, 0),
+                                  size = 12),
+        axis.title.x = element_text(margin = margin(t = 5),
+                                    size = 13,
+                                    face = 'italic'),
+        axis.title.y = element_text(margin = margin(r = 10),
+                                    size = 13,
+                                    face = 'italic'),
+        plot.caption = element_text(size = 11,
+                                    hjust = 0))
+```
+
+#### 10.2.3. Boxplots
+
+O boxplot é um dos gráficos mais úteis para as Ciências Sociais, em minha opinião. Com ele podemos identificar a relação entre uma variável categórica e outra contínua, identificando seus quartis, mediana, outliers, etc, para cada grupo da variável categórica em questão.
+
+**Boxplot simples: idade por sexo**
+
+```{r}
+titanic %>% 
+  ggplot(mapping = aes(x = Sex,
+                       y = Age)) +
+  geom_boxplot()
+
+```
+
+**Boxplot com duas variáveis: idade por sexo e tipo de ticket**
+
+```{r}
+
+titanic %>% 
+  ggplot(mapping = aes(x = Sex,
+                       y = Age,
+                       fill = Pclass)) +
+  geom_boxplot()
+
+## Estética
+
+titanic %>% 
+  mutate(Sexo = case_when(Sex == 'female' ~ 'Feminino',
+                          Sex == 'male' ~ 'Masculino')) %>% 
+  ggplot(mapping = aes(x = Sexo,
+                       y = Age,
+                       fill = Pclass)) +
+  geom_boxplot() +
+  theme_bw() +
+  scale_fill_brewer(palette = 'Dark2') +
+  labs(title = 'Idade por sexo e tipo de ticket', 
+       y = 'Idade',
+       x = 'Sexo',
+       fill = 'Ticket',
+       caption = "MQuinho de inverno - Meios Jr.") +
+  theme(plot.title = element_text(face = "bold",
+                                  margin = margin(10, 0, 10, 0),
+                                  size = 12),
+        axis.title.x = element_text(margin = margin(t = 5),
+                                    size = 12,
+                                    face = 'italic'),
+        axis.title.y = element_text(margin = margin(r = 10),
+                                    size = 12,
+                                    face = 'italic'),
+        plot.caption = element_text(size = 11))
+  
+```
+
+#### 10.2.4. Diagramas de dispersão (gráficos de pontos)
+
+O diagrama de dispersão, também conhecido como gráfico de pontos ou scatterplot é o principal tipo de gráfico utilizado para mensuração de duas variáveis contínuas. Cada ponto representa a intersecção entre X e Y.
+
+```{r}
+# Banco de dados utilizado
+
+crimes_eua <- USArrests
+```
+
+**Gráfico de pontos simples: número de assassinatos e ocorrências violentas**
+
+```{r}
+#install.packages('ggpubr')
+library(ggpubr)
+
+# Ocorrências violentas e assassinatos
+crimes_eua %>% 
+  ggplot(mapping = aes(x = Murder,
+                       y = Assault)) +
+  geom_point()
+
+# Adicionando uma linha de suavização
+crimes_eua %>% 
+  ggplot(mapping = aes(x = Murder,
+                       y = Assault)) +
+  geom_point() +
+  geom_smooth(method = 'lm', se = FALSE)
+
+cor(crimes_eua$Murder, crimes_eua$Assault)
+
+# Estética
+crimes_eua %>% 
+  ggplot(mapping = aes(x = Murder,
+                       y = Assault)) +
+  geom_point() +
+  annotate(geom = 'text',
+           x = 3.8,
+           y = 280,
+           label = 'Texto com annotate') +
+  geom_smooth(method = 'lm') +
+  labs(title = 'Relação entre ocorrências violentas e assassinatos nos EUA', 
+       y = 'Ocorrências violentas',
+       x = 'Assasinatos',
+       caption = "MQuinho de inverno - Meios Jr.") +
+  stat_compare_means() +
+  theme_bw() +
+  theme(plot.title = element_text(face = "bold",
+                                  margin = margin(10, 0, 10, 0),
+                                  size = 12),
+        axis.title.x = element_text(margin = margin(t = 5),
+                                    size = 12,
+                                    face = 'italic'),
+        axis.title.y = element_text(margin = margin(r = 10),
+                                    size = 12,
+                                    face = 'italic'),
+        plot.caption = element_text(size = 11))
+
+```
+
+**Homenagem ao Gendson: Gráfico de pontos: comprimento da pétala x largura da pétala (IRIS)**
+
+```{r}
+
+iris %>% 
+  ggplot(mapping = aes(x = Petal.Length,
+                       y =  Petal.Width,
+                       colour = Species)) +
+  geom_point() +
+  geom_smooth(se = F,
+              method = 'lm') +
+  scale_color_brewer(palette = 'Dark2')+
+  labs(title = 'Relação comprimento e espessura das pétala por espécie',
+       y = 'Espessura',
+       x = 'Comprimento',
+       colour = 'Espécie',
+       caption = "MQuinho de inverno - Meios Jr.") +
+  theme_bw() +
+  theme(plot.title = element_text(face = "bold",
+                                  margin = margin(10, 0, 10, 0),
+                                  size = 12),
+        axis.title.x = element_text(margin = margin(t = 5),
+                                    size = 12,
+                                    face = 'italic'),
+        axis.title.y = element_text(margin = margin(r = 10),
+                                    size = 12,
+                                    face = 'italic'),
+        plot.caption = element_text(size = 11))
+
+```
+
+#### 10.2.5. Gráfico de linhas
+
+Os gráficos de linhas são particularmente uteis quando a intenção é demonstrar a progressão de um fenômeno em diferentes períodos de tempo.
+
+**O banco de dados:**
+
+```{r}
+# Banco original
+
+anos <- c(1980, 1990, 2000)
+sexo <- c('Mulher', 'Mulher', 'Mulher', 'Homem', 'Homem', 'Homem')
+rendimentos <- c(600, 700, 800, 650, 750, 900)
+
+banco_salario <- data.frame(anos, sexo, rendimentos)
+```
+
+**Gráfico de linhas:**
+
+```{r}
+# Estrutura
+banco_salario %>% 
+  ggplot(mapping = aes(x = anos,
+                       y = rendimentos,
+                       colour = sexo)) +
+  geom_line()
+
+
+# Estética
+banco_salario %>% 
+  ggplot(mapping = aes(x = anos,
+                       y = rendimentos,
+                       colour = sexo)) +
+  geom_line() +
+  geom_point() +
+  theme_bw() +
+  scale_colour_brewer(palette = 'Dark2') +
+  labs(title = 'Rendimento por sexo de 1980 a 2000', 
+       y = 'Rendimentos',
+       x = 'Anos',
+       caption = "MQuinho de inverno - Meios Jr.",
+       colour = 'Sexo') +
+  theme(plot.title = element_text(face = "bold",
+                                  margin = margin(10, 0, 10, 0),
+                                  size = 12),
+        axis.title.x = element_text(margin = margin(t = 5),
+                                    size = 12,
+                                    face = 'italic'),
+        axis.title.y = element_text(margin = margin(r = 10),
+                                    size = 12,
+                                    face = 'italic'),
+        plot.caption = element_text(size = 11))
+
+```
+
+#### 10.2.6. Fontes nos gráficos
+
+O argumento para a mudança de fontes envolve três procedimentos:
+
+1.  Instalação e carregamento do pacote extrafont
+
+2.  Utilização da função font_import() uma única vez
+
+3.  loadfonts() para trazer as fontes para uso.
+
+![](https://i0.wp.com/gradientdescending.com/plots/fonttable_big.png)
+
+```{r}
+# Instalação do pacote extrafont
+#install.packages('extrafont')
+library(extrafont)
+
+# Importação de quase todas as fontes mais comuns
+#font_import()
+
+# Carregando as fontes para uso 
+#loadfonts(device = 'win')
+```
+
+```{r}
+
+banco_salario %>% 
+  ggplot(mapping = aes(x = anos,
+                       y = rendimentos,
+                       colour = sexo)) +
+  geom_line() +
+  geom_point() +
+  theme_bw() +
+  scale_colour_brewer(palette = 'Dark2') +
+  labs(title = 'Rendimento por sexo de 1980 a 2000', 
+       y = 'Rendimentos',
+       x = 'Anos',
+       caption = "MQuinho de inverno - Meios Jr.",
+       colour = 'Sexo') +
+  theme(text = element_text(family = 'Times New Roman'),
+        plot.title = element_text(face = "bold",
+                                  margin = margin(10, 0, 10, 0),
+                                  size = 12),
+        axis.title.x = element_text(margin = margin(t = 5),
+                                    size = 12,
+                                    face = 'italic'),
+        axis.title.y = element_text(margin = margin(r = 10),
+                                    size = 12,
+                                    face = 'italic'),
+        plot.caption = element_text(size = 11))
+```
+
+## 11. Testes estatísticos no R
+
+### 11.1. A noção de hipótese nula e hipótese alternativa
+
+**H0:** Hipótese nula ou hipótese de igualdade é o nome dado a hipótese de que o fenômeno (ou tratamento) inserido não tem efeito sobre aquilo que se pretende explicar.
+
+**H1:** Hipótese alternativa, ou aquilo que buscamos comprovar, é a de que o fenômeno (ou tratamento) inserido têm efeito sobre o que se pretende explicar.
+
+> Neste exemplo:
+>
+> **H0**: Sexo não tem efeito sobre a idade e
+>
+> **H1**: Sexo tem efeito sobre a idade
+
+### 11.2. A noção de p-valor
+
+O p-valor é a probabilidade de obter uma estatística ao menos equivalente a que acabamos de observar, num mundo em que a hipótese nula seja de fato verdadeira.
+
+```{r}
+sexo_idade <- titanic %>% 
+  select(Sex, Age)
+
+mean(titanic$Age, na.rm = T)
+
+t.test(titanic$Age ~ titanic$Sex)
+```
+
+### 11.3. Teste T para diferença de médias
+
+O teste T é utilizado para determinar se a média de uma variável numérica é igual para dois grupos.
+
+```{r}
+# A idade dos homens e das mulheres é estatísticamente igual?
+
+t.test(titanic$Age ~ titanic$Sex)
+
+```
+
+**p-valor \< 0.05**
+
+Aceitamos a hipótese alternativa, isto é, a diferença real entre as médias dos grupos de mulheres e de homens é diferente de 0.
+
+### 11.4. Teste Qui-Quadrado (Chi-Square) de Pearson
+
+O teste qui quadrado é utilizado para testar a significância estatística entre as frequências esperadas e observadas de duas variáveis categóricas.
+
+```{r}
+# Visualização do teste
+titanic %>% 
+  count(Sex, Survived) %>% 
+  group_by(Sex) %>% 
+  mutate(perc = n/sum(n))
+
+# Computando
+sex_survived_chisq <- chisq.test(titanic$Survived, titanic$Sex)
+
+#Visualizando
+sex_survived_chisq
+
+#Adentrando os valores esperados e observados
+sex_survived_chisq$observed
+sex_survived_chisq$expected
+```
+
+**p-valor \< 0.05**
+
+Há diferença entre os grupos, as mulheres foram mais salvas que os homens proporcionalmente. Desta forma, rejeita-se a hipótese de igualdade entre as intersecções das variáveis sobrevivência e sexo.
+
+### 11.5. ANOVA
+
+O teste ANOVA é uma extensão do teste T, para quando se tem mais do que três grupos.
+
+```{r}
+# Visualizando
+titanic %>% 
+  ggplot(mapping = aes(x = Pclass,
+                       y = Age,
+                       colour = Pclass)) +
+  geom_boxplot()
+
+# Realizando o teste
+aov_pclass_age <- aov(titanic$Age ~ titanic$Pclass)
+
+# Puxando as estatísticas do teste
+summary(aov_pclass_age)
+```
+
+Há diferença estatísticamente significante para as variáveis de Idade e tipo de ticket.
+
+### 11.6. Correlação
+
+O teste de correlação é utilizado para verificar o nível e o tipo de associação entre duas variáveis quantitativas. Quanto mais próximo de 1 em módulo mais forte a associação. 1 representa associação linear direta perfeita e -1 representa associação linear inversa perfeita.
+
+```{r}
+# Carregando o ggpubr para ter acesso ao stat_cor()
+library(ggpubr)
+
+# Calculando o coeficiente de correlação
+cor.test(crimes_eua$Murder, crimes_eua$Assault)
+
+# Visualizando a correlação no gráfico
+crimes_eua %>% 
+  ggplot(mapping = aes(x = Murder,
+                       y = Assault)) +
+  geom_point() +
+  geom_smooth(method = 'lm', se = FALSE) +
+  stat_cor()
+
+
+```
+
+### 11.7. Regressão linear simples
+
+```{r}
+# O modelo
+murder_assault_lm <- lm(Murder ~ Assault, data = crimes_eua)
+
+# Estatísticas do modelo
+summary(murder_assault_lm)
+
+USArrests
+```
+
+1.  Resíduos são a diferença entre os valores observados e os valores preditos pelo modelo;
+2.  O intercepto é o valor de Y quando X = 0
+3.  R2 é o percentual da variância da variável dependente que é explicado pelas variáveis independentes inseridas.
+4.  O R2 ajustado é uma versão modificada do R2 que considera a inserção de múltiplas variáveis explicativas. É mais conservador que o R2 e evita overfitting.
+
+### 11.8. Regressão linear múltipla
+
+Funciona de maneira similar à regressão linear simples, porém com mais variáveis explicativas.
+
+```{r}
+# O modelo
+violencia_eua_lm <- lm(Murder ~ Assault + UrbanPop,  data = crimes_eua)
+
+# Visualizando o modelo
+summary(violencia_eua_lm)
+
+# Plotagem do modelo
+plot(violencia_eua_lm)
+```

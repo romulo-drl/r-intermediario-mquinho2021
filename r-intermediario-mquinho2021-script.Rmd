@@ -1,0 +1,806 @@
+---
+title: "R Intermediário - MQuinho 2021"
+author: "Rômulo Damasceno"
+date: "30/10/2021"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+
+# install.packages("tidyverse")
+# install.packages("DataExplorer")
+# install.packages("scales")
+# install.packages("readxl")
+# install.packages("kableExtra")
+# install.packages("skimr")
+
+library(tidyverse)
+library(DataExplorer)
+library(scales)
+library(readxl)
+library(kableExtra)
+library(skimr)
+library(stringi)
+
+# Ou
+pacotes <- c('tidyverse', 'DataExplorer', 'scales',
+             'readxl', 'kableExtra', 'skimr')
+
+map(pacotes, library, character.only = TRUE)
+
+# Opções gerais dos chunks.
+knitr::opts_chunk$set(knitr.table.format = "html",
+                      warning = FALSE,
+                      message = FALSE,
+                      dpi = 180,
+                      fig.width = 8, 
+                      fig.height = 5)
+```
+
+## 1. Alinhamento preliminar
+
+### 1.1. O processo/workflow da Ciência de Dados
+
+![](https://ismayc.github.io/moderndiver-book/images/tidy1.png)
+
+O mundo da análise de dados consiste em uma gama de processos interdependentes que nos permite sair de uma dado bruto, por vezes bastante bagunçado, até chegarmos nas informações propriamente ditas, sendo estas últimas o produto final, capaz de gerar valor para as pessoas e para as organizações.
+
+Um dos maiores problemas enfrentados por nós é o tratamento e a limpeza desses dados. É comum, por exemplo, recebermos dados com erros de digitação, com múltiplas informações numa mesma célula, dados de uma mesma natureza em planilhas separadas, enfim, as possibilidades do caos são infinitas.
+
+No curso de R para análise de dados passamos por cada um dos tópicos, sem nos aprofundar na parte de "data tidying", e é o nosso principal interesse neste curso, para além da criação de funções.
+
+### 1.2. A iniciativa tidyverse
+
+![](https://i.pinimg.com/originals/bb/5b/66/bb5b6645f8d4ee7f2780dfa87c1dcd52.jpg)
+
+### 1.3. Quais os pacotes que usaremos neste curso?
+
+**dplyr e tidyr:**
+
+São os pacotes responsáveis (especialmente o dplyr) pelos procedimentos de query, manipulação de bancos de dados, seleção de colunas, filtragens por condições, reordenamento do banco de dados por condições, criação de novas variáveis, produção de estatísticas síntese, etc. Muito do nosso trabalho é feito aqui!
+
+A principal função do tidyr é alterar estruturalmente os dataframes resultantes das funções do dplyr, transformando colunas em linhas, linhas em colunas, unindo-as ou separando-as. São funções bastante úteis ao manipular o dado para criar tabelas ou fazer operações com dataframes.
+
+**ggplot2:**
+
+Um dos pacotes mais importantes do tidyverse, o ggplot é capaz de produzir gráficos altamente customizáveis e bastante profissionais. É uma das ferramentas mais competentes disponíveis e mais largamente utilizadas para a função atualmente.
+
+**stringr:**
+
+A principal função do stringr é facilitar o trabalho com variáveis textuais despadronizadas (a resposta de uma pergunta aberta de um questionário por exemplo). O stringr é capaz de reconhecer padrões textuais e executar diversos tipos de transformações com eles.
+
+**purrr:**
+
+Utilizado para replicar procedimentos feitos em um vetor, para múltiplos vetores. É um grande aliado para evitar a repetição de código e poupa muito tempo de trabalho.
+
+## 2. Revisão - dplyr e as funções básicas de manipulação de bancos de dados
+
+O dplyr é um dos pacotes mais importantes do tidyverse, pois condensa várias funções que precisam ser utilizadas constantemente no processo de análise de dados, como seleção de colunas, filtragem de casos, recodificações de variáveis em outras, etc. Tais operações são feitas com 5 verbos principais:
+
+-   `filter()` : Filtra as observações por uma ou várias condições.
+
+-   `arrange()` : Reordena as linhas com base numa coluna de referência.
+
+-   `select()` : Seleciona as colunas desejadas.
+
+-   `mutate()` : Cria novas variáveis que são funções de variáveis pré-existentes.
+
+-   `summarise()` : Collapse many values down to a single summary.
+
+```{r}
+# Banco de dados genérico, contido dentro do tidyverse
+USArrests
+
+
+# select
+USArrests %>% 
+  select(Murder, Assault)
+
+
+# filter
+USArrests %>% 
+  filter(Murder < 10 & Assault >= 200)
+
+# mutate
+
+media_homicidios <- mean(USArrests$Murder)
+
+recodes_USArrests<- USArrests %>% 
+  mutate(homicidio_cat = case_when(Murder > media_homicidios ~ 'Acima da média',
+                                   Murder < media_homicidios ~ 'Abaixo da média'))
+
+# arrange
+recodes_USArrests %>% 
+  arrange(-Murder)
+
+# group by + summarise
+recodes_USArrests %>% 
+  group_by(homicidio_cat) %>% 
+  summarise(media_assault_hom = mean(Assault),
+            sd_assault_hom = sd(Assault),
+            median_assault_hom = median(Assault))
+```
+
+### 2.1. Variação ACROSS(), mutate_if() e mutate_all()
+
+O across pode ser utilizado especialmente junto ao filter, mutate e summarise para realizar as operações em múltiplas colunas ao mesmo tempo.
+
+```{r}
+# Filter
+USArrests %>% 
+  filter(across(.cols = 1:3) >= 10)
+
+
+# Mutate
+class(USArrests$Murder)
+
+# Caso do mutate
+USArrests %>% 
+  mutate(across(.cols = c('Murder', 'Assault'), .fns = as.double))
+
+# mutate_if
+
+recode_rapido <- USArrests %>% 
+  mutate_if(is.numeric, as.factor)
+
+class(recode_rapido$UrbanPop)
+
+# mutate_all
+recode_rapido2 <- mpg %>% 
+  mutate_all(as.character)
+
+class(recode_rapido2$drv)
+
+```
+
+## 3. Revisão - ggplot e construção de gráficos
+
+![](https://pbs.twimg.com/media/EQ-uBWcX0AIc_bs.png)
+
+**The Grammar of Graphics - livro por Wilkinson**
+
+O ggplot2 é baseado na gramática dos gráficos, a ideia de que é possível construir qualquer tipo de gráfico a partir dos mesmos componentes: Um banco de dados, um sistema de coordenadas e um geom isto é, uma forma geométrica que é capaz de representar visualmente os dados.
+
+```{r}
+
+mpg %>%                                             # Data 
+  ggplot(mapping = aes(x = cty,                     # Aesthetics 1 (X)
+                       y = hwy,                     # Aesthetics 2 (Y)
+                       colour = manufacturer,       # Aesthetics 3 (Colour)
+                       shape = drv,                 # Aesthetics 4 (Shape)
+                       alpha = 1)) +                # Asthetics 5 (Alpha)
+  geom_point() +                                    # Geometries, Statistics
+  facet_wrap(~ class) +                             # Facets
+  xlim(0,40) +                                      # Coordinates
+  labs(title = 'Um gráfico com muitas informações que eu não sei o que 
+significam',
+       subtitle = 'Pois não sei nada de carro =)',
+       caption = 'Fonte: Bases confusas do R',
+       y = 'hwy',
+       x = 'cty', 
+       colour = 'Fabricante') +                      # Labels
+  theme_minimal()                                    # Theme
+```
+
+### 3.1. Barras
+
+```{r}
+# A estrutura básica de um gráfico de barras
+
+mpg %>% 
+  filter(manufacturer == 'audi') %>%
+  group_by(model) %>% 
+  summarise(media_hwy = mean(hwy)) %>% 
+  ggplot(mapping = aes(x = fct_reorder(model, -media_hwy),
+                       y = media_hwy)) +
+  geom_col()
+
+
+# Melhoramento do storytelling - estética e interpretação
+
+mpg %>% 
+  filter(manufacturer == 'audi') %>%
+  group_by(model) %>% 
+  summarise(media_hwy = mean(hwy)) %>% 
+  ggplot(mapping = aes(x = fct_reorder(model, -media_hwy),
+                       y = media_hwy)) +
+  geom_col(fill = 'deepskyblue4') +
+  labs(title = 'Audi - Média da quantidade de milhas por galão na estrada, por modelo',
+       y = 'Média milhas por galão',
+       x = 'Modelo') +
+  theme_minimal()
+
+# Comparação dos modelos de duas marcas, audi e chevrolet
+
+mpg %>% 
+  filter(manufacturer %in% c('audi', 'chevrolet')) %>% 
+  group_by(manufacturer,model) %>% 
+  summarise(mean_model_manuf_hwy = mean(hwy)) %>% 
+  ggplot(mapping = aes(x = fct_reorder(model, -mean_model_manuf_hwy),
+                       y = mean_model_manuf_hwy,
+                       fill = manufacturer)) +
+  geom_col(position = 'dodge') +
+  labs(title = 'Audi vs Chevrolet - Comparação do consumo de combustível na estrada para os modelos das marcas',
+       y = 'Média milhas por galão',
+       x = 'Modelo',
+       fill = 'Marca') +
+  theme_minimal()
+  
+
+
+```
+
+### 3.2. Histogramas e gráficos de densidade
+
+```{r}
+unique(mpg$manufacturer)
+
+# Histograma
+mpg %>%
+  ggplot(mapping = aes(x = hwy)) +
+  geom_histogram(colour = 'black') +
+  theme_bw() +
+  labs(title = 'Distribuição da quantidade de milhas por galão percorridas pelos carros.', 
+       y = '',
+       x = 'MPG',
+       caption = "MQuinho - Meios Jr.") +
+  theme(plot.title = element_text(face = "bold",
+                                  margin = margin(10, 0, 10, 0),
+                                  size = 12),
+        axis.title.x = element_text(margin = margin(t = 5),
+                                    size = 13,
+                                    face = 'italic'),
+        axis.title.y = element_text(margin = margin(r = 10),
+                                    size = 13,
+                                    face = 'italic'),
+        plot.caption = element_text(size = 11))
+  
+
+# Gráfico de densidade
+
+mpg %>%
+  ggplot(mapping = aes(x = hwy)) +
+  geom_density() +
+  theme_bw() +
+  labs(title = 'Distribuição da quantidade de milhas por galão percorridas pelos carros.', 
+       y = '',
+       x = 'MPG',
+       caption = "MQuinho - Meios Jr.") +
+  theme(plot.title = element_text(face = "bold",
+                                  margin = margin(10, 0, 10, 0),
+                                  size = 12),
+        axis.title.x = element_text(margin = margin(t = 5),
+                                    size = 13,
+                                    face = 'italic'),
+        axis.title.y = element_text(margin = margin(r = 10),
+                                    size = 13,
+                                    face = 'italic'),
+        plot.caption = element_text(size = 11))
+
+
+```
+
+### 3.3. Boxplots
+
+```{r}
+mpg %>%
+  filter(manufacturer %in% c('chevrolet', 'audi')) %>% 
+  ggplot(mapping = aes(x = class,
+                       y = hwy,
+                       fill = manufacturer)) +
+  geom_boxplot() +
+  theme_bw() +
+  scale_fill_brewer(palette = 'Dark2') +
+  labs(title = 'Audi vs Chevrolet - Comparação de uso de combustível na estrada por classe de automóvel', 
+       y = '',
+       x = '',
+       fill = 'Marca',
+       caption = "MQuinho - Meios Jr.") +
+  theme(plot.title = element_text(face = "bold",
+                                  margin = margin(10, 0, 10, 0),
+                                  size = 12),
+        axis.title.x = element_text(margin = margin(t = 5),
+                                    size = 12,
+                                    face = 'italic'),
+        axis.title.y = element_text(margin = margin(r = 10),
+                                    size = 12,
+                                    face = 'italic'),
+        plot.caption = element_text(size = 11))
+  
+```
+
+### 3.4. Diagramas de dispersão
+
+```{r}
+mpg %>%
+  ggplot(mapping = aes(x = cty,
+                       y = hwy)) +
+  geom_point() +
+  theme_bw() +
+  scale_fill_brewer(palette = 'Dark2') +
+  labs(title = 'Relação entre HWY e CTY', 
+       y = 'cty',
+       x = 'hwy',
+       fill = 'Marca',
+       caption = "MQuinho - Meios Jr.") +
+  theme(plot.title = element_text(face = "bold",
+                                  margin = margin(10, 0, 10, 0),
+                                  size = 12),
+        axis.title.x = element_text(margin = margin(t = 5),
+                                    size = 12,
+                                    face = 'italic'),
+        axis.title.y = element_text(margin = margin(r = 10),
+                                    size = 12,
+                                    face = 'italic'),
+        plot.caption = element_text(size = 11))
+  
+```
+
+### 3.5. Gráficos de linha
+
+```{r}
+mpg %>% 
+  filter(manufacturer %in% c('volkswagen', 'chevrolet', 'audi')) %>% 
+  group_by(year, manufacturer) %>% 
+  summarise(media_hwy_manuf = mean(cty)) %>% 
+  ggplot(mapping = aes(x = year, y = media_hwy_manuf, color = manufacturer)) +
+  geom_line(size = 1) +
+  geom_point(size = 2) +
+  theme_minimal() +
+  scale_fill_brewer(palette = 'Dark2') +
+  labs(title = 'Relação entre HWY e CTY', 
+       y = 'cty médio',
+       x = '',
+       fill = 'Marca',
+       caption = "MQuinho - Meios Jr.") +
+  theme(plot.title = element_text(face = "bold",
+                                  margin = margin(10, 0, 10, 0),
+                                  size = 12),
+        axis.title.x = element_text(margin = margin(t = 5),
+                                    size = 12,
+                                    face = 'italic'),
+        axis.title.y = element_text(margin = margin(r = 10),
+                                    size = 12,
+                                    face = 'italic'),
+        plot.caption = element_text(size = 11))
+  
+```
+
+## 4. Tidy data - O conceito
+
+Um dado "tidy" é aquele que se enquadra num formato padronizado, adequado a maior parte dos procedimentos e funções de análise disponíveis no R.
+
+Para estar no formato tidy, o dado deve possuir as seguintes características:
+
+1.  Cada variável deve ter a sua respectiva coluna;
+2.  Cada observação deve ter sua respectiva linha;
+3.  Cada valor deve ter sua própria célula.
+
+![](https://d33wubrfki0l68.cloudfront.net/6f1ddb544fc5c69a2478e444ab8112fb0eea23f8/91adc/images/tidy-1.png)
+
+### **4.1. Exemplo de dado Tidy e Não tidy**
+
+" Bancos de dados tidy são todos similares, mas cada banco de dado não tidy é bagunçado à sua maneira" - R for Data Science
+
+```{r}
+
+# Tidy
+table1
+
+# Não tidy
+table2
+table3
+table4a
+table4b
+```
+
+### 4.2. Data tidying - Pivoting
+
+Os procedimentos de pivoting (ou pivotagem) são utilizados para lidar com situações em que os valores de uma variável estão espalhados em múltiplas colunas, ou múltiplas colunas contém valores que deveriam estar em uma única variável.
+
+#### 4.2.1. Longer (formato mais longo)
+
+É o procedimento utilizado quando os valores que deveriam estar em células de uma mesma coluna estão espalhados em várias. Trata-se de um formato análogo ao encontrado em tabelas.
+
+```{r}
+table4a %>% 
+  pivot_longer(cols = c(`1999`, `2000`),
+               names_to = 'Ano',
+               values_to = 'Casos')
+
+table4b %>% 
+  pivot_longer(c(`1999`, `2000`),
+               names_to = "Ano",
+               values_to = "População")
+```
+
+#### 4.2.2. Wider (formato mais largo)
+
+De maneira oposta ao pivot_longer, trata-se de tornar valores de uma coluna em novas variáveis, reduzindo ou eliminando a repetição de linhas.
+
+```{r}
+table2 %>%
+    pivot_wider(names_from = type,
+                values_from = count)
+```
+
+### 4.3 Data tidying - Separando e unindo colunas
+
+#### 4.3.1. separate() 
+
+```{r}
+# Separate com todos os argumentos possíveis
+table3 %>% 
+  separate(rate,
+           into = c('casos', 'população'),
+           sep = '/',
+           remove = F,
+           convert = T)
+
+# Separate pela posição
+table3_separate <- table3 %>% 
+  separate(year, into = c('Seculo','Ano'), sep = 2)
+
+
+
+```
+
+#### 4.3.2. separate_rows()
+
+```{r}
+
+df_ficticio <- tibble(pessoa = c('adolfo', 'marta', 'ricardo'),
+                      associados = c('pedro | maria | yasmin',
+                                     'marcelo | marcos | natalia',
+                                     'joao | cesar | hericles'))
+
+df_ficticio_tidy <- df_ficticio %>% 
+  separate_rows(associados)
+
+
+```
+
+#### 4.3.3. unite()
+
+```{r}
+table3_separate %>% 
+  unite(ano_completo, Seculo, Ano, sep = '', remove = F)
+
+```
+
+**Exemplo:** códigos ocupacionais da PNAD.
+
+#### 4.4.4, distinct()
+
+```{r}
+df_ficticio_tidy %>% 
+  distinct(pessoa, .keep_all = T)
+```
+
+### 4.4. Data tidying - Trabalhando com strings
+
+<https://github.com/rstudio/cheatsheets/blob/main/strings.pdf>
+
+#### 4.4.1. Removendo acentuação:
+
+```{r}
+#install.packages('stringi)
+library(stringi)
+
+texto_teste <- data.frame(comentario = c('úm texto múítô acêntúadô','um TEXTO MUITO dEsesTruturadO ç'))
+
+# Opção 1:
+texto_teste$comentario <- stri_trans_general(texto_teste$comentario,"Latin-ASCII")
+
+# Opção 2:
+rm_accent <- function(str,pattern="all") {
+   if(!is.character(str))
+    str <- as.character(str)
+
+  pattern <- unique(pattern)
+
+  if(any(pattern=="Ç"))
+    pattern[pattern=="Ç"] <- "ç"
+
+  symbols <- c(
+    acute = "áéíóúÁÉÍÓÚýÝ",
+    grave = "àèìòùÀÈÌÒÙ",
+    circunflex = "âêîôûÂÊÎÔÛ",
+    tilde = "ãõÃÕñÑ",
+    umlaut = "äëïöüÄËÏÖÜÿ",
+    cedil = "çÇ"
+  )
+
+  nudeSymbols <- c(
+    acute = "aeiouAEIOUyY",
+    grave = "aeiouAEIOU",
+    circunflex = "aeiouAEIOU",
+    tilde = "aoAOnN",
+    umlaut = "aeiouAEIOUy",
+    cedil = "cC"
+  )
+
+  accentTypes <- c("´","`","^","~","¨","ç")
+
+  if(any(c("all","al","a","todos","t","to","tod","todo")%in%pattern)) # opcao retirar todos
+    return(chartr(paste(symbols, collapse=""), paste(nudeSymbols, collapse=""), str))
+
+  for(i in which(accentTypes%in%pattern))
+    str <- chartr(symbols[i],nudeSymbols[i], str) 
+
+  return(str)
+}
+
+# ------------- Aplicações, ufa --------------------------------------
+# R Base
+texto_teste$comentario <- rm_accent(texto_teste$comentario)
+
+# Tidyverse
+texto_teste %>% 
+  mutate_if(is.character, rm_accent)
+```
+
+#### 4.4.2. Transformando letras maiúsculas em minúsculas e vice-versa
+
+```{r}
+
+str_to_lower(texto_teste$comentario)
+str_to_upper(texto_teste$comentario)
+
+# Maneira tidyverse
+texto_teste %>% 
+  mutate(comentario = str_to_upper(comentario))
+
+
+fruit[str_order(fruit)]
+str_view_all(sentences, "[aeiou]")
+```
+
+#### 4.4.3. Colapsando múltiplos espaços em um e eliminando espaços
+
+```{r}
+
+# ------- Reduzindo espaços do início, no meio e do fim de uma string --------
+
+str_trim_exemplo <- c(' No início desse string tem um espaço, no final também ',
+                      'No  meio desse   string tem vários espaços  desnecessários')
+
+str_trim_exemplo_tratado <- str_trim(str_trim_exemplo)
+str_trim_exemplo_tratado <- str_squish(str_trim_exemplo)
+
+# Removendo todos os espaços
+str_replace_all(str_trim_exemplo, pattern = ' ', replacement = '')
+
+
+
+# ------ Reduzindo o tamanho das strings -------
+
+string_x <- 'um grande string, cheio de palavras'
+str_trunc(string_x, 20)
+
+# Sem o pipe
+sentences_trunc <- str_trunc(sentences, 10) 
+
+# Com o pipe
+sentences_trunc_tidy <- sentences %>%
+  str_trunc(width = 20)
+
+```
+
+### 4.5. Mutate em strings
+
+Muitas vezes precisamos utilizar funções de reconhecimento de strings para a recodificação (mutate) de variáveis. É um processo usual na ciência de dados, principalmente ao lidar com dados que foram tabulados à mão.
+
+#### 4.5.1. Funções auxiliares de reconhecimento de padrões textuais:
+
+```{r}
+# Criando um dataframe para trabalho
+sentences_df <- as.data.frame(sentences)
+
+sentences_df <- sentences_df %>% 
+  mutate(id_sentence = seq(1,720)) %>% 
+  relocate(id_sentence, sentences)
+
+# Detectar um padrão de strings - str_detect()
+pencils <- sentences_df %>% 
+  filter(str_detect(sentences, 'pencil'))
+
+# Detectar um padrão de strings com início ou fim específicos
+starts_with_T <- sentences_df %>% 
+  filter(str_starts(sentences, 'T'))
+
+ends_with_s_ou_d <- sentences_df %>% 
+  filter(str_ends(sentences, 's\\.|d\\.'))
+
+```
+
+#### 4.5.2. Mutates em strings
+
+Existem funções dedicadas para o procedimento de recodificação de strings, mas em grande parte dos casos, as funções de detecção + o mutate tradicional fazem o trabalho.
+
+```{r}
+words <- stringr::words
+words_df <- as.data.frame(words)
+
+words_df <- words_df %>% 
+  mutate(id_words = seq(1,980)) %>% 
+  relocate(id_words, words)
+
+
+# Usando as funções que aprendemos nas recodificações:
+words_recode <- words_df %>% 
+  mutate(contem_we = case_when(str_detect(words, pattern = 'we') ~ 'Contém "we"'),
+         comeca_ac = case_when(str_starts(words, pattern = 'ac') ~ 'Começa "ac"'),
+         ends_a    = case_when(str_ends(words, pattern = 'a') ~ 'Termina c/ "a"'),
+         iniciais  = str_sub(words,1,3),
+         as_por_es = str_replace(words, pattern = 'a', replacement = 'e'),
+         sem_as    = str_remove(words, pattern = 'a'))
+
+```
+
+## 5. Procedimentos de Join
+
+Os joins são uma das ferramentas mais importantes da Ciência de Dados, pois MUITO frequentemente nos deparamos com dados que compartilham uma mesma coluna de referência, mas que estão em planilhas/tabelas separadas.
+
+### 5.1. Principais tipos de Join
+
+Os mutating joins são utilizados para agregar dois dataframes diferentes a partir de uma ou mais colunas comuns, chamadas de colunas "keys" ou "chave". São quatro tipos, e estão representados no diagrama de Venn abaixo.
+
+![](https://d33wubrfki0l68.cloudfront.net/aeab386461820b029b7e7606ccff1286f623bae1/ef0d4/diagrams/join-venn.png)
+
+```{r}
+#install.packages('nycflights13') 
+library(nycflights13)
+```
+
+#### 5.1.1. Left Join - O mais importante
+
+O left join é o tipo de join padrão. Ele é utilizado com frequência pois mantém todas as linhas do dataframe X, ainda que não haja correspondência imediata em todos os elementos da coluna chave, compartilhada por X e Y.
+
+```{r}
+#flights
+#airlines
+
+# Começamos com um procedimento de filtragem das colunas desejadas
+flights2 <- flights %>% 
+  select(year:day, origin, carrier)
+
+# Join com o nome das companhias aéreas pelo identificador da operadora (carrier)
+
+flights_airlines <- flights2 %>% 
+  left_join(airlines, by = "carrier")
+
+# DF resultante do join
+flights_airlines
+```
+
+#### 5.1.2. Right Join
+
+```{r}
+# DF voos da American Airlines
+AA_DL <- airlines %>% 
+  filter(carrier %in% c('AA', 'DL'))
+
+# Right join no banco flights
+AA_DL_flights <- flights %>% 
+  right_join(AA_DL, by = "carrier")
+
+```
+
+#### 5.1.3. Inner Join
+
+```{r}
+# Banco com os dados de voo de três companhias aéreas
+flights_UA_AA_B6 <- flights %>%
+  filter(carrier %in% c('AA', 'UA', 'B6'))
+
+# Nomes de cinco companhias aéreas
+airlines_exemplo <- airlines %>% 
+  filter(carrier %in% c('AA', 'UA', 'DL', 'EV', 'WN'))
+
+# Join
+flights_innerjoin <- flights_UA_AA_B6 %>% 
+  inner_join(airlines_exemplo, by = "carrier")
+
+# Checagem
+flights_innerjoin %>%
+  count(name)
+```
+
+#### 5.1.4. Full Join
+
+```{r}
+# Operação de full join
+flights_fulljoin <- flights_UA_AA_B6 %>% 
+  full_join(airlines_exemplo, by = 'carrier')
+
+# Checagem
+flights_fulljoin %>% 
+  count(name)
+```
+
+## 6. Funções
+
+É bastante comum que precisemos repetir conjuntos de operações iguais para múltiplos vetores/objetos. Na medida em que o código cresce isso se torna um problema, pois para aplicar qualquer alteração que fizermos a um destes objetos a todos os outros, precisaremos reescrever o código para cada um deles. As funções nos ajudam em dois aspectos deste problema:
+
+1.  Condensam o conjunto operações em um único argumento (a função), permitindo que modifiquemos os inputs ao invés ter que reescrever o código;
+2.  Facilitam o debugging, uma vez que uma alteração feita na função mãe altera automaticamente os outputs resultantes de sua utilização.
+
+### 6.1. Estrutura básica
+
+#### 6.1.1. Exemplo com o banco de dados mpg
+
+Vamos criar duas tabelas, cada uma com as médias de cty e hwy e seus respectivos desvios padrão, por marca de carro.
+
+```{r}
+mpg
+
+# --------------- Abordagem sem uso de funções -------
+
+# Cálculo de média e desvio para cty por marca
+cty_mean <- mpg %>% 
+  group_by(manufacturer) %>% 
+  summarise(media_cty = mean(cty),
+            sd_cty = mean(cty))
+
+# Cálculo de média e desvio para hwy por marca
+hwy_mean <- mpg %>% 
+  group_by(manufacturer) %>% 
+  summarise(media_hwy = mean(hwy),
+            sd_hwy = mean(hwy))
+
+
+# --------------- Função ---------------------
+
+
+build_mean_sd <- function(bd, group, var) {
+  
+  bd %>% 
+    group_by({{group}}) %>% 
+    summarise(mean = mean({{var}}),
+              sd   = sd({{var}}))
+  }
+
+hwy_mean2 <- build_mean_sd(bd = mpg, group = manufacturer, var = hwy)
+cty_mean2 <- build_mean_sd(mpg, manufacturer, cty)
+
+```
+
+#### 6.1.2. Execução condicional de funções com IF, ELSE IF e ELSE
+
+```{r}
+# if (temp <= 0) {
+#   "freezing"
+# } else if (temp <= 10) {
+#   "cold"
+# } else if (temp <= 20) {
+#   "cool"
+# } else if (temp <= 30) {
+#   "warm"
+# } else {
+#   "hot"
+# }
+```
+
+```{r}
+
+constroi_barras <- function(bd, x, y, fill) {
+  if(missing(y)){
+    
+    bd %>% 
+      ggplot2::ggplot(mapping = aes(x = {{x}}, fill = {{fill}})) +
+      geom_bar()
+  } 
+  else {
+    
+    bd %>% 
+      ggplot2:: ggplot(mapping = aes(x = {{x}}, y = {{y}}, fill = {{fill}})) +
+      geom_col()
+  }
+}
+
+constroi_barras(bd = mpg, x = manufacturer, fill = model)
+constroi_barras(bd = mpg, x = manufacturer, y = displ, fill = model)
+```
