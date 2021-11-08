@@ -118,9 +118,9 @@ skim(alocacao_colaboradores)
 
 alocacao_colaboradores_tidy <- alocacao_colaboradores %>% 
   # Letras minúsculas
-  mutate_all(str_to_lower) %>% 
+  mutate_if(is.character, str_to_lower) %>% 
   # Retirando acentos
-  mutate_all(.funs = stri_trans_general, "Latin-ASCII") %>% 
+  mutate_if(is.character,.funs = stri_trans_general, "Latin-ASCII") %>% 
   # Remoção de espaços extras
   mutate(CLIENTE_tidy = str_replace(CLIENTE, pattern = ' ', replacement = '')) %>% 
   # Separação de linhas dos colaboradores com múltiplos clientes
@@ -202,7 +202,7 @@ colab_cargo %>%
 
 calcula_contagem   <- function(bd, var, cliente = F) {
   
-  if(cliente == T){
+  if(cliente == F){
     
     bd %>% 
       distinct(NOME, .keep_all = T) %>% 
@@ -233,7 +233,7 @@ constroi_barras_ex <- function(bd, x, y, title, lab.x, lab.y, caption) {
 # Aplicação da função de contagem:
 colab_cargo <- calcula_contagem(bd = bd_colab_aloc_final,
                                 var = CARGO_tidy_names,
-                                cliente = T)
+                                cliente = F)
 
 colab_cargo
 
@@ -253,12 +253,66 @@ barras_cargo
 
 #### 5.2. Gráfico de barras do número de colaboradores por sexo;
 
+```{r}
+colab_sexo <- calcula_contagem(bd = bd_colab_aloc_final,
+                               var = SEXO,
+                               cliente = F)
+
+barras_sexo  <- constroi_barras_ex(bd = colab_sexo,
+                                   x = fct_reorder(SEXO, -n),
+                                   y = n, 
+                                   title = 'Colaboradores por sexo',
+                                   lab.x = 'Sexo',
+                                   lab.y = 'Contagem',
+                                   caption = 'MQuinho 2021')
+```
+
 #### 5.3. Gráfico de barras do número de colaboradores por cliente;
 
-#### 5.4. Gráfico de barras do número de colaboradores por UF;
+```{r}
 
-### 5.3. Boxplot dos salários dos colaboradores por cargo;
+colab_cliente <- calcula_contagem(bd = bd_colab_aloc_final,
+                                  var = CLIENTE_tidy_names,
+                                  cliente = T)
 
-### 5.4. Diagrama de dispersão dos salários por tempo de casa
+barras_cliente  <- constroi_barras_ex(bd = colab_cliente,
+                                      x = fct_reorder(CLIENTE_tidy_names, -n),
+                                      y = n,
+                                      title = 'Colaboradores por cliente',
+                                      lab.x = 'Cliente',
+                                      lab.y = 'Contagem',
+                                      caption = 'MQuinho 2021')
+```
 
-### 5.5. Desempenho dos colaboradores por
+#### 5.4. Boxplot dos salários dos colaboradores por cargo;
+
+```{r}
+
+bd_colab_aloc_final %>% 
+  distinct(NOME, .keep_all = T) %>%
+  ggplot(mapping = aes(x = fct_reorder(CARGO_tidy_names, -SALARIO),
+                       y = SALARIO,
+                       fill = CARGO_tidy_names)) +
+  geom_boxplot() +
+  theme_bw() +
+  labs(title = "Boxplot do salário pelo cargo",
+       x = "Cargo",
+       y = "Salário",
+       fill = "Cargo",
+       caption = 'MQuinho 2021') +
+  theme(plot.title = element_text(face = "bold",                    
+                                  margin = margin(10, 0, 5, 0),
+                                  size = 13),
+        axis.title.x = element_text(margin = margin(t = 10),
+                                    size = 12,
+                                    face = 'italic'),
+        axis.title.y = element_text(margin = margin(r = 10),
+                                    size = 12,
+                                    face = 'italic'),
+        plot.caption = element_text(size = 12))
+  
+```
+
+#### 5.5. Diagrama de dispersão dos salários por tempo de casa
+
+#### 5.5. Desempenho dos colaboradores por

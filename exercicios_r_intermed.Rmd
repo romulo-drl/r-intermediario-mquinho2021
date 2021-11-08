@@ -1,0 +1,105 @@
+---
+title: "Exercícios R Intermediário - MQuinho 2021"
+author: "Rômulo Damasceno"
+date: "08/11/2021"
+output: html_document
+---
+
+## Proposta
+
+Nesta lista de exercícios utilizaremos os bancos de dados "messy_data_alocacao" e "messy_data_colab" , presentes na pasta de exercícios deste script. Os dados dizem respeito à informações sobre os colaboradores de uma empresa de inteligência de dados, e possuem diversos erros de preenchimento, além de estarem em tabelas separadas.
+
+O desafio desta lista consiste em colocar o dado num formato "tidy", e, em seguida, produzir um relatório completo destes dados, buscando os insights sobre os colaboradores, considerando que ele deve ser entregues ao chefe de RH da empresa fictícia.
+
+## Passo 1 - Carregar os pacotes e importar os dados
+
+1.  Carregue os seguintes pacotes para uso:
+
+    -   tidyverse, scales, DataExplorer, readxl, skimr, stringi
+
+2.  Importe os dois bancos de dados: "messy_data_alocacao" e "messy_data_colab" e atribua-os a objetos separados com nomes de sua escolha.
+
+```{r}
+# Resposta aqui
+
+```
+
+## Passo 2 - Join dos bancos de dados
+
+1.  Identifique a "chave", isto é, a variável que os bancos de dados tem em comum.
+2.  Qual tipo de join devemos utilizar? Faça o Join dos dois bancos de dados pela chave salvando-o num banco de dados chamado: "alocacao_colaboradores".
+
+```{r}
+
+
+```
+
+## Passo 3 - Estrutura e diagnóstico do banco de dados
+
+1.  Utilizando as funções str(), ou glimpse(), analise a estrutura dos bancos de dados. As variáveis estão no formato esperado?
+2.  A função summary() é útil nesses dois dataframes?
+3.  Rode a função skim() no banco de dados para ter informações mais detalhadas sobre sua estrutura.
+4.  Liste as alterações que você precisa fazer neste banco de dados.
+
+```{r, include = F, echo = F}
+
+
+```
+
+## Passo 4 - Limpeza do banco de dados
+
+1.  Mobilize as funções necessárias para solucionar os problemas encontrados, salvando-as num banco de dados chamado "alocacao_colaboradores_tidy"
+
+**Subpassos:**
+
+1.  Utilize a função mutate_all() quando as alterações forem feitas em todas as colunas, e mutate() quando for para apenas uma.
+2.  Comece pelas padronizações mais importantes: trazer os nomes para letras minúsculas, retirar acentuação e remoção dos espaços extras.
+3.  Utilize o comando separate_rows() para separar as linhas que contém múltiplos valores (como é o caso da coluna CLIENTE)
+4.  Padronize os nomes dos clientes e dos cargos com o uso de case_when() e str_detect()
+5.  Crie uma versão final do banco de dados, retirando as colunas desimportantes, com o nome "bd_colab_aloc_final"
+
+```{r}
+
+```
+
+## Passo 5 - Análise
+
+Você recebeu um conjunto de solicitações da chefe de RH, e ela te ligou às 03:00AM para te lembrar que ela também quer análises, não só as figuras... :)
+
+### Análises de colaboradores:
+
+Nesta sessão, o seu trabalho é criar quatro gráficos de barras. Em todos eles, o eixo Y é o número de colaboradores e o eixo X é uma outras variáveis identificatórias.
+
+Se você se sentir confortável, formule uma função para resolver o problema.
+
+**ATENÇÃO:** Repare que em função da múltipla associação de alguns colaboradores a diferentes clientes, houve uma superestimação da importância desses indivíduos. Você deve resolver isto trabalhando com o banco resultante "bd_colab_aloc_final" para as questões que envolvem clientes, e um outro banco que considere uma linha por indivíduo para questões que não envolvem clientes. O jeito mais simples de fazer isto é usar um distinct() pelo nome do colaborador.
+
+#### 5.1. Gráfico de barras do número de colaboradores por cargo;
+
+```{r}
+
+```
+
+#### 5.2. Gráfico de barras do número de colaboradores por sexo;
+
+```{r}
+
+```
+
+#### 5.3. Gráfico de barras do número de colaboradores por cliente;
+
+```{r}
+
+```
+
+### 5.3. Boxplot dos salários dos colaboradores por cargo;
+
+```{r}
+
+```
+
+### 5.4. Diagrama de dispersão dos salários por tempo de casa.
+
+```{r}
+
+```

@@ -428,7 +428,7 @@ table2 %>%
 
 ### 4.3 Data tidying - Separando e unindo colunas
 
-#### 4.3.1. separate() 
+#### 4.3.1. separate()
 
 ```{r}
 # Separate com todos os argumentos possíveis
