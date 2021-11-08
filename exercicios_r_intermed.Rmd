@@ -92,6 +92,13 @@ Se você se sentir confortável, formule uma função para resolver o problema.
 
 ```
 
+#### 5.4. Gráfico de barras do número de colaboradores por UF;
+
+```{r}
+
+```
+
+>>>>>>> 11253c10bf9feefb2411a70a1494ec2b431034ef
 ### 5.3. Boxplot dos salários dos colaboradores por cargo;
 
 ```{r}
