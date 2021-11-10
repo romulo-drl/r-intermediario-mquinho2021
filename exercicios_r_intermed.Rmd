@@ -9,7 +9,7 @@ output: html_document
 
 Nesta lista de exercícios utilizaremos os bancos de dados "messy_data_alocacao" e "messy_data_colab" , presentes na pasta de exercícios deste script. Os dados dizem respeito à informações sobre os colaboradores de uma empresa de inteligência de dados, e possuem diversos erros de preenchimento, além de estarem em tabelas separadas.
 
-O desafio desta lista consiste em colocar o dado num formato "tidy", e, em seguida, produzir um relatório completo destes dados, buscando os insights sobre os colaboradores, considerando que ele deve ser entregues ao chefe de RH da empresa fictícia.
+O desafio desta lista consiste em colocar o dado num formato "tidy", e, em seguida, produzir um relatório completo destes dados, buscando os insights sobre os colaboradores, considerando que eles devem ser entregues ao chefe de RH da empresa fictícia.
 
 ## Passo 1 - Carregar os pacotes e importar os dados
 
@@ -98,8 +98,7 @@ Se você se sentir confortável, formule uma função para resolver o problema.
 
 ```
 
->>>>>>> 11253c10bf9feefb2411a70a1494ec2b431034ef
-### 5.3. Boxplot dos salários dos colaboradores por cargo;
+> > > > > > > 11253c10bf9feefb2411a70a1494ec2b431034ef \#\#\# 5.3. Boxplot dos salários dos colaboradores por cargo;
 
 ```{r}
 

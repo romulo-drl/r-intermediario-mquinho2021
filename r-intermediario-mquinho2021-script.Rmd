@@ -410,6 +410,7 @@ table4a %>%
                names_to = 'Ano',
                values_to = 'Casos')
 
+
 table4b %>% 
   pivot_longer(c(`1999`, `2000`),
                names_to = "Ano",
@@ -723,10 +724,10 @@ flights_fulljoin %>%
 
 ## 6. Funções
 
-É bastante comum que precisemos repetir conjuntos de operações iguais para múltiplos vetores/objetos. Na medida em que o código cresce isso se torna um problema, pois para aplicar qualquer alteração que fizermos a um destes objetos a todos os outros, precisaremos reescrever o código para cada um deles. As funções nos ajudam em dois aspectos deste problema:
+É bastante comum que precisemos repetir conjuntos de operações iguais para múltiplos vetores/objetos. Na medida em que o código cresce isso se torna um problema, pois para aplicar qualquer alteração que fizermos a um destes objetos a todos os outros, precisaremos reescrever o código n vezes. As funções nos ajudam em dois aspectos deste problema:
 
 1.  Condensam o conjunto operações em um único argumento (a função), permitindo que modifiquemos os inputs ao invés ter que reescrever o código;
-2.  Facilitam o debugging, uma vez que uma alteração feita na função mãe altera automaticamente os outputs resultantes de sua utilização.
+2.  Facilitam o debugging uma vez que os outputs são gerados unicamente a partir de sua utilização, e não mais de múltiplas repetições de código.
 
 ### 6.1. Estrutura básica
 
