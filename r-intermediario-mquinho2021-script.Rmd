@@ -15,7 +15,7 @@ editor_options:
 # install.packages("readxl")
 # install.packages("kableExtra")
 # install.packages("skimr")
-
+table(mpg$model)
 library(tidyverse)
 library(DataExplorer)
 library(scales)

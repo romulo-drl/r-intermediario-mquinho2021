@@ -80,7 +80,7 @@ alocacao_colaboradores <- alocacao %>%
 ## Passo 3 - Estrutura e diagnóstico do banco de dados
 
 1.  Utilizando as funções str(), ou glimpse(), analise a estrutura dos bancos de dados. As variáveis estão no formato esperado?
-2.  A função summary() é útil nesses dois dataframes?
+2.  A função summary() é útil nesse dataframe?
 3.  Rode a função skim() no banco de dados para ter informações mais detalhadas sobre sua estrutura.
 4.  Liste as alterações que você precisa fazer neste banco de dados.
 
@@ -108,7 +108,7 @@ skim(alocacao_colaboradores)
 
 **Subpassos:**
 
-1.  Utilize a função mutate_all() quando as alterações forem feitas em todas as colunas, e mutate() quando for para apenas uma.
+1.  Utilize a função mutate_if() quando as alterações forem feitas em todas as colunas, e mutate() quando for para apenas uma.
 2.  Comece pelas padronizações mais importantes: trazer os nomes para letras minúsculas, retirar acentuação e remoção dos espaços extras.
 3.  Utilize o comando separate_rows() para separar as linhas que contém múltiplos valores (como é o caso da coluna CLIENTE)
 4.  Padronize os nomes dos clientes e dos cargos com o uso de case_when() e str_detect()
@@ -314,5 +314,9 @@ bd_colab_aloc_final %>%
 ```
 
 #### 5.5. Diagrama de dispersão dos salários por tempo de casa
+
+```{r}
+ggplot()
+```
 
 #### 5.5. Desempenho dos colaboradores por
