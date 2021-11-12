@@ -312,11 +312,3 @@ bd_colab_aloc_final %>%
         plot.caption = element_text(size = 12))
   
 ```
-
-#### 5.5. Diagrama de dispersão dos salários por tempo de casa
-
-```{r}
-ggplot()
-```
-
-#### 5.5. Desempenho dos colaboradores por

@@ -20,8 +20,16 @@ O desafio desta lista consiste em colocar o dado num formato "tidy", e, em segui
 2.  Importe os dois bancos de dados: "messy_data_alocacao" e "messy_data_colab" e atribua-os a objetos separados com nomes de sua escolha.
 
 ```{r}
-# Resposta aqui
+library(readxl)
+library(tidyverse)
+library(DataExplorer)
+library(skimr)
+library(stringi)
 
+
+# Resposta aqui
+messy_data_alocacao <- readxl::read_excel('messy_data_alocacao.xlsx')
+messy_data_colab <- readxl::read_excel('messy_data_colab.xlsx')
 ```
 
 ## Passo 2 - Join dos bancos de dados
@@ -31,17 +39,31 @@ O desafio desta lista consiste em colocar o dado num formato "tidy", e, em segui
 
 ```{r}
 
+messy_data_alocacao
+messy_data_colab
 
+alocacao_colaboradores <- messy_data_alocacao %>% 
+  left_join(messy_data_colab, by = 'ID')
 ```
 
 ## Passo 3 - Estrutura e diagnóstico do banco de dados
 
 1.  Utilizando as funções str(), ou glimpse(), analise a estrutura dos bancos de dados. As variáveis estão no formato esperado?
-2.  A função summary() é útil nesses dois dataframes?
+2.  A função summary() é útil nesse dataframe?
 3.  Rode a função skim() no banco de dados para ter informações mais detalhadas sobre sua estrutura.
 4.  Liste as alterações que você precisa fazer neste banco de dados.
 
 ```{r, include = F, echo = F}
+str(alocacao_colaboradores)
+glimpse(alocacao_colaboradores)
+skim(alocacao_colaboradores)
+
+# Coluna "Cliente" tem múltiplos valores numa mesma célula, espaços incorretos, acentuação incorreta, letras maiúsculas e minúsculas.
+
+# CARGO ATUAL separa as mesmas funções para I, II e III, e tem os mesmos problemas anteriores.
+
+# CARGO ATUAL COMPLEMENTO deve ser anexado a cargo atual
+
 
 
 ```
@@ -53,22 +75,75 @@ O desafio desta lista consiste em colocar o dado num formato "tidy", e, em segui
 **Subpassos:**
 
 1.  Utilize a função mutate_if() quando as alterações forem feitas em todas as colunas, e mutate() quando for para apenas uma.
-2.  Comece pelas padronizações mais importantes: trazer os nomes para letras minúsculas, retirar acentuação e remoção dos espaços extras.
+2.  Comece pelas padronizações mais importantes: trazer os nomes para letras minúsculas, retirar acentuação.
 3.  Utilize o comando separate_rows() para separar as linhas que contém múltiplos valores (como é o caso da coluna CLIENTE)
-4.  Padronize os nomes dos clientes e dos cargos com o uso de case_when() e str_detect()
+4.  Padronize os nomes dos clientes e dos cargos com o uso de case_when() e str_detect() [(AQUI)]{.ul}
 5.  Crie uma versão final do banco de dados, retirando as colunas desimportantes, com o nome "bd_colab_aloc_final"
 
 ```{r}
 
+alocacao_colaboradores_tidy <- alocacao_colaboradores %>% 
+  mutate_if(is.character, str_to_lower) %>% 
+  mutate_if(is.character, stri_trans_general, "latin-ascii") %>% 
+  mutate(NOME = str_replace(NOME, pattern = ' ', replacement = ' ')) %>% 
+  unite(CARGO, `CARGO ATUAL`, `CARGO ATUAL COMPLEMENTO`, sep = ' ', na.rm = T)
+
+  
+# Procedimento de separação de linhas - Quais as implicações para a análise?
+
+alocacao_colaboradores_tidy <- alocacao_colaboradores_tidy %>% 
+  separate_rows(CLIENTE)
+  
+
+
+# Padronize os nomes dos clientes e dos cargos com o uso de case_when() e str_detect() 
+
+alocacao_colaboradores_tidy <- alocacao_colaboradores_tidy %>% 
+  mutate(CLIENTE_tidy = case_when(str_detect(CLIENTE, 'mic') ~ 'Microsoft',
+                                  str_detect(CLIENTE, 'lin') ~ 'Linkedin',
+                                  str_detect(CLIENTE, 'yah') ~ 'Yahoo',
+                                  str_detect(CLIENTE, 'int') ~ 'Interno',
+                                  TRUE ~ CLIENTE),
+         CARGO_tidy  = case_when(str_detect(CARGO, 'engenh') ~ 'ED',
+                                 str_detect(CARGO, 'analist') ~ 'AD',
+                                 str_detect(CARGO, 'cient') ~ 'CD',
+                                 str_detect(CARGO, 'estag') ~ 'Estagiário',
+                                 str_detect(CARGO, 'lid') ~ 'Líder',
+                                 str_detect(CARGO, 'agil') ~ 'Agile Master',
+                                 TRUE ~ CARGO))
+
+# Remoção das colunas desnecessarias e recodificação das variáveis:
+
+
+alocacao_colaboradores_final <- alocacao_colaboradores_tidy %>% 
+  select(-c(CLIENTE,CARGO))
+
+# Correção de formato
+str(alocacao_colaboradores_final)
+
+                                 
 ```
 
 ## Passo 5 - Análises descritivas
 
 Você recebeu um conjunto de solicitações da chefe de RH, e ela te ligou às 03:00AM para te lembrar que ela também quer análises, não só as figuras... :)
 
-### Análises de colaboradores:
+O banco de dados resultante do exercício anterior possui repetição de linhas de colaboradores, pois utilizamos a função separate_rows(). É importante que nos atentemos ao fato de que não é adequado utilizá-lo em todos os cenários.
 
-**ATENÇÃO:** Repare que em função da múltipla associação de alguns colaboradores a diferentes clientes, houve uma superestimação da importância desses indivíduos. Você deve resolver isto trabalhando com o banco resultante "bd_colab_aloc_final" para as questões que envolvem clientes, e um outro banco que considere uma linha por indivíduo para questões que não envolvem clientes. O jeito mais simples de fazer isto é usar um distinct() pelo nome do colaborador.
+1.  Crie uma versão do banco de dados em que não haja repetição de nomes de colaboradores e salve-o num objeto separado. Em quais casos você deve utilizar o banco que possui e que não possui repetição?
+
+**Dica:** Utilize a função distinct()
+
+```{r}
+
+bd_colab_cliente <- alocacao_colaboradores_final
+
+bd_colab <- alocacao_colaboradores_final %>% 
+  distinct(NOME, .keep_all = T)
+
+```
+
+### Análise de colaboradores:
 
 #### 5.1. Gráfico de barras do número de colaboradores por cargo;
 
@@ -82,13 +157,7 @@ Você recebeu um conjunto de solicitações da chefe de RH, e ela te ligou às 0
 
 ```
 
-#### 5.3. Gráfico de barras do número de colaboradores por cliente;
-
-```{r}
-
-```
-
-#### 5.4. Gráfico de barras do número de colaboradores por UF;
+#### 5.3. Gráfico de barras do número de colaboradores por UF;
 
 ```{r}
 
@@ -105,3 +174,11 @@ Você recebeu um conjunto de solicitações da chefe de RH, e ela te ligou às 0
 ```{r}
 
 ```
+
+#### 5.6. Histograma dos salários dos colaboradores
+
+```{r}
+
+```
+
+### 

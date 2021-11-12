@@ -15,7 +15,8 @@ editor_options:
 # install.packages("readxl")
 # install.packages("kableExtra")
 # install.packages("skimr")
-table(mpg$model)
+# install.packages('stringi')
+
 library(tidyverse)
 library(DataExplorer)
 library(scales)
@@ -34,7 +35,7 @@ map(pacotes, library, character.only = TRUE)
 knitr::opts_chunk$set(knitr.table.format = "html",
                       warning = FALSE,
                       message = FALSE,
-                      dpi = 180,
+                      dpi = 360,
                       fig.width = 8, 
                       fig.height = 5)
 ```
@@ -382,7 +383,7 @@ Para estar no formato tidy, o dado deve possuir as seguintes características:
 
 ### **4.1. Exemplo de dado Tidy e Não tidy**
 
-" Bancos de dados tidy são todos similares, mas cada banco de dado não tidy é bagunçado à sua maneira" - R for Data Science
+"Bancos de dados tidy são todos similares, mas cada banco de dado não tidy é bagunçado à sua maneira" - R for Data Science
 
 ```{r}
 
@@ -438,7 +439,8 @@ table3 %>%
            into = c('casos', 'população'),
            sep = '/',
            remove = F,
-           convert = T)
+           convert = T) %>% 
+  mutate(taxa = casos/população *100)
 
 # Separate pela posição
 table3_separate <- table3 %>% 
@@ -455,10 +457,17 @@ table3_separate <- table3 %>%
 df_ficticio <- tibble(pessoa = c('adolfo', 'marta', 'ricardo'),
                       associados = c('pedro | maria | yasmin',
                                      'marcelo | marcos | natalia',
-                                     'joao | cesar | hericles'))
+                                     'joao | cesar'))
 
+associados_socios <- df_ficticio %>% 
+  separate(associados,
+           into = c('associado1', 'associado2', 'associado3'))
+
+# Este procedimento
 df_ficticio_tidy <- df_ficticio %>% 
   separate_rows(associados)
+
+
 
 
 ```
@@ -487,13 +496,15 @@ df_ficticio_tidy %>%
 #### 4.4.1. Removendo acentuação:
 
 ```{r}
-#install.packages('stringi)
+#install.packages('stringi')
 library(stringi)
+
 
 texto_teste <- data.frame(comentario = c('úm texto múítô acêntúadô','um TEXTO MUITO dEsesTruturadO ç'))
 
 # Opção 1:
-texto_teste$comentario <- stri_trans_general(texto_teste$comentario,"Latin-ASCII")
+texto_teste$comentario <- stri_trans_general(texto_teste$comentario,
+                                             "latin-ascii")
 
 # Opção 2:
 rm_accent <- function(str,pattern="all") {
@@ -556,7 +567,8 @@ texto_teste %>%
 
 
 fruit[str_order(fruit)]
-str_view_all(sentences, "[aeiou]")
+
+str_view_all(sentences, "round")
 ```
 
 #### 4.4.3. Colapsando múltiplos espaços em um e eliminando espaços
@@ -572,7 +584,7 @@ str_trim_exemplo_tratado <- str_trim(str_trim_exemplo)
 str_trim_exemplo_tratado <- str_squish(str_trim_exemplo)
 
 # Removendo todos os espaços
-str_replace_all(str_trim_exemplo, pattern = ' ', replacement = '')
+str_replace_all(str_trim_exemplo, pattern = 'a', replacement = 'e')
 
 
 
@@ -661,8 +673,8 @@ library(nycflights13)
 O left join é o tipo de join padrão. Ele é utilizado com frequência pois mantém todas as linhas do dataframe X, ainda que não haja correspondência imediata em todos os elementos da coluna chave, compartilhada por X e Y.
 
 ```{r}
-#flights
-#airlines
+flights
+airlines
 
 # Começamos com um procedimento de filtragem das colunas desejadas
 flights2 <- flights %>% 
@@ -671,7 +683,8 @@ flights2 <- flights %>%
 # Join com o nome das companhias aéreas pelo identificador da operadora (carrier)
 
 flights_airlines <- flights2 %>% 
-  left_join(airlines, by = "carrier")
+  left_join(airlines, by = c("carrier"))
+
 
 # DF resultante do join
 flights_airlines
@@ -705,6 +718,7 @@ airlines_exemplo <- airlines %>%
 flights_innerjoin <- flights_UA_AA_B6 %>% 
   inner_join(airlines_exemplo, by = "carrier")
 
+
 # Checagem
 flights_innerjoin %>%
   count(name)
@@ -719,14 +733,14 @@ flights_fulljoin <- flights_UA_AA_B6 %>%
 
 # Checagem
 flights_fulljoin %>% 
-  count(name)
+  count(carrier)
 ```
 
 ## 6. Funções
 
 É bastante comum que precisemos repetir conjuntos de operações iguais para múltiplos vetores/objetos. Na medida em que o código cresce isso se torna um problema, pois para aplicar qualquer alteração que fizermos a um destes objetos a todos os outros, precisaremos reescrever o código n vezes. As funções nos ajudam em dois aspectos deste problema:
 
-1.  Condensam o conjunto operações em um único argumento (a função), permitindo que modifiquemos os inputs ao invés ter que reescrever o código;
+1.  Condensam o conjunto operações em um único argumento (a função em si), permitindo que modifiquemos os inputs ao invés ter que reescrever o código;
 2.  Facilitam o debugging uma vez que os outputs são gerados unicamente a partir de sua utilização, e não mais de múltiplas repetições de código.
 
 ### 6.1. Estrutura básica
@@ -744,13 +758,13 @@ mpg
 cty_mean <- mpg %>% 
   group_by(manufacturer) %>% 
   summarise(media_cty = mean(cty),
-            sd_cty = mean(cty))
+            sd_cty = sd(cty))
 
 # Cálculo de média e desvio para hwy por marca
 hwy_mean <- mpg %>% 
   group_by(manufacturer) %>% 
   summarise(media_hwy = mean(hwy),
-            sd_hwy = mean(hwy))
+            sd_hwy = sd(hwy))
 
 
 # --------------- Função ---------------------
@@ -764,25 +778,53 @@ build_mean_sd <- function(bd, group, var) {
               sd   = sd({{var}}))
   }
 
+
 hwy_mean2 <- build_mean_sd(bd = mpg, group = manufacturer, var = hwy)
 cty_mean2 <- build_mean_sd(mpg, manufacturer, cty)
 
 ```
 
+#### 6.1.2. Gráficos
+
+```{r}
+# Criação da função
+constroi_barras <- function(bd, x, y) {
+  
+  bd %>%
+    ggplot(mapping = aes(x = {{x}},
+                         y = {{y}})) +
+    geom_col() +
+    theme_bw()
+}
+
+# Aplicação
+constroi_barras(bd = hwy_mean2, x = manufacturer, y = mean)
+
+constroi_linhas <- function(bd, x, y) {
+  
+  bd %>% 
+    ggplot(mapping = aes(x = {{x}},
+                         y = {{y}})) +
+    geom_line() +
+    theme_minimal()
+    
+}
+```
+
 #### 6.1.2. Execução condicional de funções com IF, ELSE IF e ELSE
 
 ```{r}
-# if (temp <= 0) {
-#   "freezing"
-# } else if (temp <= 10) {
-#   "cold"
-# } else if (temp <= 20) {
-#   "cool"
-# } else if (temp <= 30) {
-#   "warm"
-# } else {
-#   "hot"
-# }
+if (temp <= 0) {
+  "freezing"
+} else if (temp <= 10) {
+  "cold"
+} else if (temp <= 20) {
+  "cool"
+} else if (temp <= 30) {
+  "warm"
+} else {
+  "hot"
+}
 ```
 
 ```{r}
